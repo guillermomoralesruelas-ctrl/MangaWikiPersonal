@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Análisis de Conocimiento - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 30px;">
+
+    <!-- Navigation Back -->
+    <div>
+        <a href="{{ url_for('view_project', project_id=project.id) }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <!-- Hero Header with radial/large score indicators -->
+    <div class="glass-panel" style="padding: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <!-- Knowledge Score Badge -->
+            <div style="width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, rgba(217,119,6,0.2) 0%, rgba(20,22,32,0.8) 100%); border: 3px solid var(--accent-gold); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(217,119,6,0.3);">
+                <span style="font-size: 1.8rem; font-weight: 800; color: var(--accent-gold); line-height: 1;">{{ data.knowledge_score }}</span>
+                <span style="font-size: 0.6rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-top: 2px;">Score</span>
+            </div>
+            
+            <div>
+                <h1 class="text-gradient" style="font-size: 2rem; margin-bottom: 6px;">
+                    <i class="fa-solid fa-brain" style="color: var(--accent-gold); margin-right: 8px;"></i>Knowledge Analysis Engine
+                </h1>
+                <p style="font-size: 0.95rem; margin: 0;">
+                    Auditoría de completitud del vault: **{{ data.coverage_pct }}%** de páginas documentadas ({{ data.documented_pages }} / {{ data.total_pages }}).
+                </p>
+            </div>
+        </div>
+        
+        <div>
+            <form action="{{ url_for('export_analysis_report', project_id=project.id) }}" method="POST" style="margin: 0;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-file-export"></i> Exportar Reportes (JSON & MD)
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Analysis Navigation Tabs -->
+    <div class="glass-panel" style="padding: 12px; display: flex; gap: 10px; overflow-x: auto;">
+        <button class="btn tab-btn active" onclick="switchTab(event, 'tab-recommendations')">
+            <i class="fa-solid fa-list-check" style="color: var(--accent-gold);"></i> Top 10 Acciones
+        </button>
+        <button class="btn tab-btn" onclick="switchTab(event, 'tab-entities')">
+            <i class="fa-solid fa-users-viewfinder" style="color: var(--accent-blue);"></i> Entidades Críticas
+        </button>
+        <button class="btn tab-btn" onclick="switchTab(event, 'tab-relations')">
+            <i class="fa-solid fa-arrows-spin" style="color: #10b981;"></i> Relaciones Sugeridas
+        </button>
+        <button class="btn tab-btn" onclick="switchTab(event, 'tab-pages')">
+            <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-red-hover);"></i> Páginas Incompletas
+        </button>
+        <button class="btn tab-btn" onclick="switchTab(event, 'tab-timeline')">
+            <i class="fa-solid fa-clock-rotate-left" style="color: var(--text-secondary);"></i> Timeline & Eventos
+        </button>
+    </div>
+
+    <!-- TABS CONTAINER -->
+    <div id="tabsContent">
+
+        <!-- TAB 1: RECOMMENDATIONS -->
+        <div id="tab-recommendations" class="tab-pane active-pane">
+            <div class="glass-panel" style="padding: 24px;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <i class="fa-solid fa-list-check" style="color: var(--accent-gold); margin-right: 8px;"></i>Top 10 Acciones Recomendadas
+                </h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% for rec in data.top_recommendations %}
+                    <div style="display: flex; gap: 15px; align-items: center; padding: 14px 18px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <span class="tag-badge" style="
+                            padding: 4px 10px; font-size: 0.7rem; 
+                            background: {% if rec.prioridad == 'Alta' %}rgba(220, 38, 38, 0.15){% elif rec.prioridad == 'Media' %}rgba(217, 119, 6, 0.15){% else %}rgba(255,255,255,0.05){% endif %};
+                            color: {% if rec.prioridad == 'Alta' %}var(--accent-red-hover){% elif rec.prioridad == 'Media' %}var(--accent-gold){% else %}var(--text-secondary){% endif %};
+                            border-color: {% if rec.prioridad == 'Alta' %}rgba(220, 38, 38, 0.3){% elif rec.prioridad == 'Media' %}rgba(217, 119, 6, 0.3){% else %}transparent{% endif %};
+                        ">
+                            {{ rec.prioridad }}
+                        </span>
+                        <span style="font-size: 0.95rem; font-weight: 500; color: var(--text-primary);">
+                            {{ rec.descripcion }}
+                        </span>
+                    </div>
+                    {% else %}
+                    <p style="font-style: italic; color: var(--text-muted); font-size: 0.9rem;">El motor no ha encontrado acciones pendientes urgentes. ¡Tu bóveda tiene una salud de conocimiento excelente!</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: ENTITIES -->
+        <div id="tab-entities" class="tab-pane">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                
+                <!-- Low Info / Critical Entities -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <i class="fa-solid fa-users-slash" style="color: var(--accent-red-hover); margin-right: 8px;"></i>Entidades Críticas / Incompletas
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-right: 6px;">
+                        {% for crit in data.low_info_entities %}
+                        <div style="padding: 12px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <strong style="font-size: 0.95rem; color: var(--text-primary);">{{ crit.nombre }}</strong>
+                                    <span class="tag-badge" style="font-size: 0.65rem; padding: 1px 4px; text-transform: uppercase;">{{ crit.tipo }}</span>
+                                </div>
+                                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; line-height: 1.3;">
+                                    {{ crit.recomendacion }}
+                                </p>
+                            </div>
+                            <div style="text-align: right; min-width: 60px;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Salud</span>
+                                <strong style="font-size: 1.05rem; color: {% if crit.is_critical %}var(--accent-red-hover){% else %}var(--accent-gold){% endif %};">{{ crit.health_score }}%</strong>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p style="font-style: italic; color: var(--text-muted); font-size: 0.85rem;">Ninguna entidad activa registra niveles críticos de desinformación.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Important Chars with no relations -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <i class="fa-solid fa-link-slash" style="color: var(--accent-gold); margin-right: 8px;"></i>Personajes Importantes sin Relaciones
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-right: 6px;">
+                        {% for char in data.important_chars_incomplete %}
+                        <div style="padding: 12px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 0.95rem; color: var(--text-primary);">{{ char.nombre }}</strong>
+                                <p style="font-size: 0.8rem; color: var(--accent-red-hover); margin-top: 4px; font-weight: 500;">
+                                    {{ char.alerta }}
+                                </p>
+                            </div>
+                            <div style="text-align: right; min-width: 70px;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Apariciones</span>
+                                <strong style="font-size: 1rem; color: var(--text-primary);">{{ char.apariciones }}</strong>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p style="font-style: italic; color: var(--text-muted); font-size: 0.85rem;">Todos tus personajes con altas apariciones registran al menos una relación.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TAB 3: SUGGESTED RELATIONS -->
+        <div id="tab-relations" class="tab-pane">
+            <div class="glass-panel" style="padding: 24px;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <i class="fa-solid fa-arrows-spin" style="color: #10b981; margin-right: 8px;"></i>Sugerencias de Relaciones Implícitas (Co-apariciones Frecuentes)
+                </h3>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 20px;">
+                    Los siguientes personajes coinciden en las mismas páginas del Manga con alta frecuencia pero no registran un vínculo social explícito en relaciones.json.
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                    {% for sug in data.suggested_relations %}
+                    <div class="glass-card" style="border-top: 3px solid #10b981; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="tag-badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.25);">
+                                Co-aparición: {{ sug.co_occurrences }} pág.
+                            </span>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">Confianza</span>
+                                <strong style="color: var(--accent-gold-hover); font-size: 0.95rem;">{{ sug.confidence }}%</strong>
+                            </div>
+                        </div>
+                        <div style="font-size: 1rem; font-weight: 600; text-align: center; margin: 6px 0;">
+                            <span style="color: var(--text-primary);">{{ sug.source_name }}</span>
+                            <i class="fa-solid fa-arrows-left-right" style="margin: 0 10px; color: var(--text-muted); font-size: 0.85rem;"></i>
+                            <span style="color: var(--text-primary);">{{ sug.target_name }}</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 8px;">
+                            Coinciden en: 
+                            {% for p in sug.pages %}
+                                <span style="color: var(--text-secondary); font-weight: 500;">Pág. {{ p }}</span>{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; color: #10b981; margin-bottom: 12px; display: block;"></i>
+                        <p style="font-size: 0.9rem; margin: 0;">No existen sugerencias pendientes. Todas las co-apariciones recurrentes están vinculadas explícitamente.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: PAGES -->
+        <div id="tab-pages" class="tab-pane">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                
+                <!-- Underdocumented pages -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-red-hover); margin-right: 8px;"></i>Páginas que Requieren Atención Inmediata
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-right: 6px;">
+                        {% for p_empty in data.immediate_attention_pages %}
+                        <div style="padding: 12px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <a href="{{ url_for('edit_page', project_id=project.id, page_num=p_empty.pagina) }}" style="font-size: 0.95rem; font-weight: 600; color: var(--accent-gold-hover); text-decoration: none;">
+                                    Página {{ p_empty.pagina }}
+                                </a>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px;">
+                                    {% for r in p_empty.reasons %}
+                                        <span class="tag-badge" style="font-size: 0.6rem; padding: 1px 4px; border-color: transparent; background: rgba(255,255,255,0.05); color: var(--text-secondary);">{{ r }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div style="text-align: right; min-width: 60px;">
+                                <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">Lagunas</span>
+                                <strong style="font-size: 1rem; color: var(--accent-red-hover);">{{ p_empty.score }} / 6</strong>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p style="font-style: italic; color: var(--text-muted); font-size: 0.85rem;">Todas tus páginas del tomo registran información y catalogación completa.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Underdocumented places -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <i class="fa-solid fa-map-location-dot" style="color: var(--accent-blue); margin-right: 8px;"></i>Lugares Subdocumentados
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-right: 6px;">
+                        {% for pl in data.underdocumented_places %}
+                        <div style="padding: 12px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 0.95rem; color: var(--text-primary);">{{ pl.nombre }}</strong>
+                                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.3;">
+                                    {{ pl.sugerencia }}
+                                </p>
+                            </div>
+                            <div style="text-align: right; min-width: 70px;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Apariciones</span>
+                                <strong style="font-size: 1rem; color: var(--text-primary);">{{ pl.apariciones }}</strong>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p style="font-style: italic; color: var(--text-muted); font-size: 0.85rem;">Todos los lugares mencionados tienen su ficha wiki documentada.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TAB 5: TIMELINE & EVENTS -->
+        <div id="tab-timeline" class="tab-pane">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                
+                <!-- Orphan Events -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <i class="fa-solid fa-circle-nodes" style="color: var(--accent-red-hover); margin-right: 8px;"></i>Eventos Huérfanos
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-right: 6px;">
+                        {% for ev in data.orphan_events %}
+                        <div style="padding: 12px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <strong style="font-size: 0.95rem; color: var(--text-primary);">{{ ev.nombre }}</strong>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.3;">
+                                {{ ev.alerta }}
+                            </p>
+                        </div>
+                        {% else %}
+                        <p style="font-style: italic; color: var(--text-muted); font-size: 0.85rem;">No hay eventos huérfanos registrados. Todos tienen hitos o páginas de origen vinculadas.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Incomplete Timeline Position -->
+                <div class="glass-panel" style="padding: 24px;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <i class="fa-solid fa-hourglass-half" style="color: var(--accent-gold); margin-right: 8px;"></i>Hitos Cronológicos Incompletos
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-right: 6px;">
+                        {% for item in data.incomplete_timeline %}
+                        <div style="padding: 12px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="font-size: 0.95rem; color: var(--text-primary);">
+                                    {% if item.num %}{{ "%04d" | format(item.num) }}{% else %}Pendiente{% endif %} - {{ item.nombre }}
+                                </strong>
+                                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.3;">
+                                    {{ item.problema }}
+                                </p>
+                            </div>
+                            <span class="tag-badge" style="font-size: 0.7rem; background: rgba(217,119,6,0.15); color: var(--accent-gold); border-color: transparent;">
+                                {{ item.primera_aparicion }}
+                            </span>
+                        </div>
+                        {% else %}
+                        <p style="font-style: italic; color: var(--text-muted); font-size: 0.85rem;">Todos los hitos del timeline registran numeración y primera aparición completas.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function switchTab(evt, tabId) {
+        // Hide all tab panes
+        const tabPanes = document.querySelectorAll(".tab-pane");
+        tabPanes.forEach(pane => {
+            pane.classList.remove("active-pane");
+        });
+
+        // Deactivate all tab buttons
+        const tabBtns = document.querySelectorAll(".tab-btn");
+        tabBtns.forEach(btn => {
+            btn.classList.remove("active");
+        });
+
+        // Show targets
+        document.getElementById(tabId).classList.add("active-pane");
+        evt.currentTarget.classList.add("active");
+    }
+</script>
+<style>
+    .tab-pane {
+        display: none;
+    }
+    .tab-pane.active-pane {
+        display: block;
+    }
+    .tab-btn {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        padding: 10px 18px;
+        border-radius: 8px;
+        transition: var(--transition-smooth);
+        font-weight: 500;
+    }
+    .tab-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+    }
+    .tab-btn.active {
+        background: var(--accent-gold);
+        color: #fff;
+        border-color: var(--accent-gold);
+        box-shadow: 0 4px 14px rgba(217, 119, 6, 0.25);
+    }
+</style>
+{% endblock %}

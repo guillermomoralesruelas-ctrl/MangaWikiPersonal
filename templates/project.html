@@ -19,6 +19,9 @@
             <a href="{{ url_for('list_pages', project_id=project.id) }}" class="btn btn-primary">
                 <i class="fa-solid fa-images"></i> Explorar Páginas
             </a>
+            <a href="{{ url_for('view_analysis', project_id=project.id) }}" class="btn btn-secondary" title="Análisis de conocimiento y salud">
+                <i class="fa-solid fa-brain" style="color: var(--accent-gold);"></i> Análisis
+            </a>
             <a href="{{ url_for('view_consistency_report', project_id=project.id) }}" class="btn btn-secondary" title="Verificar consistencia del vault">
                 <i class="fa-solid fa-shield-halved"></i> Consistencia
             </a>
@@ -69,6 +72,40 @@
         <div class="glass-card" style="text-align: center; border-bottom: 3px solid #10b981; padding: 12px;">
             <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-bottom: 4px;">{{ stats.aliases }}</div>
             <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Alias Reg.</div>
+        </div>
+    </div>
+
+    <!-- Knowledge Analysis Dashboard (Radial/Premium design widgets) -->
+    <div class="glass-panel" style="padding: 20px; border: 1px solid rgba(217, 119, 6, 0.2); background: linear-gradient(135deg, rgba(217, 119, 6, 0.04) 0%, rgba(20, 22, 32, 0.9) 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-brain" style="color: var(--accent-gold);"></i> Knowledge Analysis Dashboard
+            </h3>
+            <a href="{{ url_for('view_analysis', project_id=project.id) }}" class="btn btn-primary" style="font-size: 0.8rem; padding: 6px 12px; background: var(--accent-gold); border-color: var(--accent-gold); color: #000;">
+                <i class="fa-solid fa-chart-line"></i> Abrir Panel de Análisis
+            </a>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--accent-gold); padding: 10px; background: rgba(217, 119, 6, 0.02);">
+                <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-gold); margin-bottom: 2px;">{{ stats.knowledge_score }}%</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Knowledge Score</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid #10b981; padding: 10px; background: rgba(16, 185, 129, 0.02);">
+                <div style="font-size: 1.5rem; font-weight: 800; color: #10b981; margin-bottom: 2px;">{{ stats.coverage_pct }}%</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Páginas Documentadas</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--accent-red); padding: 10px; background: rgba(239, 68, 68, 0.02);">
+                <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-red); margin-bottom: 2px;">{{ stats.critical_entities_count }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Entidades Críticas</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--accent-blue); padding: 10px; background: rgba(59, 130, 246, 0.02);">
+                <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-blue); margin-bottom: 2px;">{{ stats.suggested_relations_count }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Relaciones Sugeridas</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid #8b5cf6; padding: 10px; background: rgba(139, 92, 246, 0.02);">
+                <div style="font-size: 1.5rem; font-weight: 800; color: #8b5cf6; margin-bottom: 2px;">{{ stats.recommendations_count }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Acciones Recomendadas</div>
+            </div>
         </div>
     </div>
     

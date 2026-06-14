@@ -158,6 +158,23 @@ def view_project(project_id):
         "incomplete": incomplete_count,
         "orphans": orphan_count
     }
+
+    # Run Analysis Engine to fetch high-level dashboard metrics
+    try:
+        from services.analysis_engine import AnalysisEngine
+        engine = AnalysisEngine(project_path)
+        report_data = engine.run_full_analysis()
+        stats["knowledge_score"] = report_data["knowledge_score"]
+        stats["coverage_pct"] = report_data["coverage_pct"]
+        stats["critical_entities_count"] = report_data["critical_entities_count"]
+        stats["suggested_relations_count"] = report_data["suggested_relations_count"]
+        stats["recommendations_count"] = report_data["recommendations_count"]
+    except Exception as e:
+        stats["knowledge_score"] = 0.0
+        stats["coverage_pct"] = 0.0
+        stats["critical_entities_count"] = 0
+        stats["suggested_relations_count"] = 0
+        stats["recommendations_count"] = 0
     
     return render_template('project.html', 
                            project=meta, 
@@ -744,6 +761,40 @@ def restore_entity_post(project_id):
         flash(msg, "error")
         
     return redirect(url_for('view_recovery', project_id=project_id))
+
+@app.route('/project/<project_id>/analysis')
+def view_analysis(project_id):
+    project_path = os.path.join(BASE_PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        flash("Proyecto no encontrado.", "error")
+        return redirect(url_for('index'))
+        
+    json_mgr = ProjectJSONManager(project_path)
+    meta = json_mgr.load_project_meta()
+    
+    from services.analysis_engine import AnalysisEngine
+    engine = AnalysisEngine(project_path)
+    report_data = engine.run_full_analysis()
+    
+    return render_template('analysis.html',
+                           project=meta,
+                           data=report_data,
+                           active_page='analysis')
+
+@app.route('/project/<project_id>/analysis/export', methods=['POST'])
+def export_analysis_report(project_id):
+    project_path = os.path.join(BASE_PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        flash("Proyecto no encontrado.", "error")
+        return redirect(url_for('index'))
+        
+    from services.analysis_engine import AnalysisEngine
+    engine = AnalysisEngine(project_path)
+    paths = engine.export_reports()
+    
+    flash(f"Reporte exportado con éxito en: {os.path.basename(paths['json_path'])} y {os.path.basename(paths['md_path'])}", "success")
+    flash(f"Copia versionada guardada en Datos_JSON/Reportes_Analisis/", "info")
+    return redirect(url_for('view_analysis', project_id=project_id))
 
 @app.route('/project/<project_id>/library')
 def library_dashboard(project_id):

@@ -215,6 +215,38 @@ def run_test():
         if resolved_after_restore != luffy_dup_id:
             raise ValueError("Resolución de redirecciones no se limpió correctamente tras restauración.")
 
+        # Test Knowledge Analysis Engine
+        print("\n--- Probando Knowledge Analysis Engine ---")
+        from services.analysis_engine import AnalysisEngine
+        ae = AnalysisEngine(test_project_path)
+        report_data = ae.run_full_analysis()
+        
+        print(f" -> Knowledge Score calculado: {report_data['knowledge_score']}%")
+        print(f" -> Cobertura de páginas %: {report_data['coverage_pct']}%")
+        print(f" -> Total entidades críticas: {report_data['critical_entities_count']}")
+        print(f" -> Relaciones sugeridas: {report_data['suggested_relations_count']}")
+        print(f" -> Acciones recomendadas: {len(report_data['top_recommendations'])}")
+        
+        # Basic assertions
+        assert "knowledge_score" in report_data, "Falta 'knowledge_score' en el reporte."
+        assert "coverage_pct" in report_data, "Falta 'coverage_pct' en el reporte."
+        assert "top_recommendations" in report_data, "Falta 'top_recommendations' en el reporte."
+        assert len(report_data["top_recommendations"]) <= 10, "Se generaron más de 10 recomendaciones."
+        
+        # Test exports (primary & versioned)
+        export_paths = ae.export_reports()
+        print(" -> Reportes exportados exitosamente:")
+        print(f"    - JSON Primario: {export_paths['json_path']}")
+        print(f"    - MD Primario: {export_paths['md_path']}")
+        print(f"    - JSON Versionado: {export_paths['versioned_json_path']}")
+        print(f"    - MD Versionado: {export_paths['versioned_md_path']}")
+        
+        assert os.path.exists(export_paths["json_path"]), "No se exportó el reporte JSON principal."
+        assert os.path.exists(export_paths["md_path"]), "No se exportó el reporte MD principal."
+        assert os.path.exists(export_paths["versioned_json_path"]), "No se exportó el reporte JSON versionado."
+        assert os.path.exists(export_paths["versioned_md_path"]), "No se exportó el reporte MD versionado."
+        print("[OK] Toda la validación del Knowledge Analysis Engine fue exitosa.")
+
         # Check results
         index_file = os.path.join(test_project_path, "00_Index", "Index.md")
         char_file = os.path.join(test_project_path, "Biblioteca", "Personajes", "Monkey_D._Luffy.md")
