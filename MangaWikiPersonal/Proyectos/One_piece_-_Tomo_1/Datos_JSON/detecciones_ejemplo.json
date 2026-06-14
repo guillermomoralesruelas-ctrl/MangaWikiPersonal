@@ -1,0 +1,58 @@
+[
+    {
+        "pagina": 1,
+        "elementos": [
+            {
+                "id": "p001_obj_001",
+                "tipo": "personaje",
+                "nombre": "Gold Roger",
+                "descripcion": "El legendario Rey de los Piratas, Gold Roger, sonriendo en el patíbulo antes de su ejecución.",
+                "bbox": {
+                    "x": 100,
+                    "y": 100,
+                    "ancho": 400,
+                    "alto": 500
+                },
+                "tags": [
+                    "personaje",
+                    "gold_roger",
+                    "rey_de_los_piratas"
+                ]
+            },
+            {
+                "id": "p001_obj_002",
+                "tipo": "objeto",
+                "nombre": "Espadas de Ejecucion",
+                "descripcion": "Las dos espadas cruzadas que custodian el cuello de Gold Roger en la plataforma de ejecución.",
+                "bbox_normalizado": {
+                    "x": 0.1,
+                    "y": 0.35,
+                    "ancho": 0.35,
+                    "alto": 0.15
+                },
+                "tags": [
+                    "objeto",
+                    "ejecucion",
+                    "espadas"
+                ]
+            },
+            {
+                "id": "p001_obj_003",
+                "tipo": "escena",
+                "nombre": "La Ejecucion de Gold Roger",
+                "descripcion": "Gran plano general de la plaza de Loguetown atestada de personas presenciando la ejecución del Rey de los Piratas.",
+                "bbox": {
+                    "x": 50,
+                    "y": 50,
+                    "ancho": 700,
+                    "alto": 1000
+                },
+                "tags": [
+                    "escena",
+                    "loguetown",
+                    "ejecucion"
+                ]
+            }
+        ]
+    }
+]

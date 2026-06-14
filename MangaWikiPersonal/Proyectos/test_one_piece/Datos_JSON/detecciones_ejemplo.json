@@ -1,0 +1,23 @@
+[
+    {
+        "pagina": 1,
+        "elementos": [
+            {
+                "id": "p001_obj_001",
+                "tipo": "personaje",
+                "nombre": "Gold Roger",
+                "descripcion": "El legendario Rey de los Piratas.",
+                "bbox": {
+                    "x": 100,
+                    "y": 100,
+                    "ancho": 200,
+                    "alto": 200
+                },
+                "tags": [
+                    "personaje",
+                    "gold_roger"
+                ]
+            }
+        ]
+    }
+]

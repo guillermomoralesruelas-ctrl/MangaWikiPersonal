@@ -1,0 +1,15 @@
+[
+    {
+        "id": "p001_obj_001",
+        "pagina": 1,
+        "archivo": "Assets/Personajes/p001_obj_001_Gold_Roger.png",
+        "tipo": "personaje",
+        "nombre": "Gold Roger",
+        "tags": [
+            "personaje",
+            "gold_roger"
+        ],
+        "descripcion": "El legendario Rey de los Piratas.",
+        "entity_id": "char_000003"
+    }
+]

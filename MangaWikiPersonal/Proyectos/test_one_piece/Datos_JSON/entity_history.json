@@ -1,0 +1,74 @@
+[
+    {
+        "entity_id": "char_000001",
+        "fecha": "2026-06-13 18:38:16",
+        "accion": "created",
+        "valor": "Monkey D. Luffy"
+    },
+    {
+        "entity_id": "char_000002",
+        "fecha": "2026-06-13 18:38:16",
+        "accion": "created",
+        "valor": "Roronoa Zoro"
+    },
+    {
+        "entity_id": "event_000001",
+        "fecha": "2026-06-13 18:38:16",
+        "accion": "created",
+        "valor": "Inicio de la prueba"
+    },
+    {
+        "entity_id": "place_000001",
+        "fecha": "2026-06-13 18:38:16",
+        "accion": "created",
+        "valor": "Mar del Este"
+    },
+    {
+        "entity_id": "obj_000001",
+        "fecha": "2026-06-13 18:38:16",
+        "accion": "created",
+        "valor": "Sombrero de Paja"
+    },
+    {
+        "entity_id": "char_000003",
+        "fecha": "2026-06-13 18:38:16",
+        "accion": "created",
+        "valor": "Gold Roger"
+    },
+    {
+        "entity_id": "char_000001",
+        "fecha": "2026-06-13 18:38:16",
+        "accion": "alias_added",
+        "valor": "Mugiwara"
+    },
+    {
+        "entity_id": "char_000004",
+        "fecha": "2026-06-13 18:38:17",
+        "accion": "created",
+        "valor": "Luffy"
+    },
+    {
+        "entity_id": "char_000001",
+        "fecha": "2026-06-13 18:38:17",
+        "accion": "merged_absorb",
+        "valor": "char_000004"
+    },
+    {
+        "entity_id": "char_000004",
+        "fecha": "2026-06-13 18:38:17",
+        "accion": "merged_into",
+        "valor": "char_000001"
+    },
+    {
+        "entity_id": "char_000004",
+        "fecha": "2026-06-13 18:38:17",
+        "accion": "restored",
+        "valor": "Luffy"
+    },
+    {
+        "entity_id": "char_000001",
+        "fecha": "2026-06-13 18:38:17",
+        "accion": "merged_restore_rollback",
+        "valor": "char_000004"
+    }
+]

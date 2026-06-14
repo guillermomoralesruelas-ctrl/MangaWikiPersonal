@@ -9,11 +9,15 @@ __pycache__/
 venv/
 ENV/
 
-# Large files
+# Global binary/media exclusions
 *.pdf
+*.png
+*.jpg
+*.jpeg
+*.webp
+MangaWikiPersonal/Proyectos/**/PDF_Original/
 
-# Project Vaults and Uploads (Excludes user manga vaults and temp directories)
-MangaWikiPersonal/Proyectos/
+# Exclude temp upload directories
 temp_uploads/
 
 # IDE configurations

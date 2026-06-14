@@ -1,0 +1,81 @@
+[
+    {
+        "id": "char_000001",
+        "tipo": "personaje",
+        "nombre": "Monkey D. Luffy",
+        "alias": [
+            "Mugiwara"
+        ],
+        "primera_aparicion": {
+            "pagina": "Pagina_001",
+            "asset": "Pendiente"
+        },
+        "estado": "activo"
+    },
+    {
+        "id": "char_000002",
+        "tipo": "personaje",
+        "nombre": "Roronoa Zoro",
+        "alias": [],
+        "primera_aparicion": {
+            "pagina": "Pagina_002",
+            "asset": "Pendiente"
+        },
+        "estado": "activo"
+    },
+    {
+        "id": "event_000001",
+        "tipo": "evento",
+        "nombre": "Inicio de la prueba",
+        "alias": [],
+        "primera_aparicion": {
+            "pagina": "Pagina_001",
+            "asset": "Pendiente"
+        },
+        "estado": "activo"
+    },
+    {
+        "id": "place_000001",
+        "tipo": "lugar",
+        "nombre": "Mar del Este",
+        "alias": [],
+        "primera_aparicion": {
+            "pagina": "Pagina_001",
+            "asset": "Pendiente"
+        },
+        "estado": "activo"
+    },
+    {
+        "id": "obj_000001",
+        "tipo": "objeto",
+        "nombre": "Sombrero de Paja",
+        "alias": [],
+        "primera_aparicion": {
+            "pagina": "Pagina_001",
+            "asset": "Pendiente"
+        },
+        "estado": "activo"
+    },
+    {
+        "id": "char_000003",
+        "tipo": "personaje",
+        "nombre": "Gold Roger",
+        "alias": [],
+        "primera_aparicion": {
+            "pagina": "Pagina_001",
+            "asset": "p001_obj_001"
+        },
+        "estado": "activo"
+    },
+    {
+        "id": "char_000004",
+        "tipo": "personaje",
+        "nombre": "Luffy",
+        "alias": [],
+        "primera_aparicion": {
+            "pagina": "Pendiente",
+            "asset": "Pendiente"
+        },
+        "estado": "activo"
+    }
+]

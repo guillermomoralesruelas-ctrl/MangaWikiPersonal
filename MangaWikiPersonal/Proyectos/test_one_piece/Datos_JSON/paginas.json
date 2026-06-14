@@ -1,0 +1,52 @@
+{
+    "001": {
+        "num_pagina": "001",
+        "texto": "Texto de prueba.",
+        "narracion": "Una escena de prueba.",
+        "personajes": [
+            "Monkey D. Luffy"
+        ],
+        "descripcion_visual": "Detalles visuales.",
+        "eventos": [
+            "Inicio de la prueba"
+        ],
+        "lugares": [
+            "Mar del Este"
+        ],
+        "objetos": [
+            "Sombrero de Paja"
+        ],
+        "curiosidades": [],
+        "relaciones": [],
+        "notas": "",
+        "etiquetas": [
+            "#test",
+            "#manga"
+        ]
+    },
+    "002": {
+        "num_pagina": "002",
+        "texto": "Texto de prueba.",
+        "narracion": "Una escena de prueba.",
+        "personajes": [
+            "Roronoa Zoro"
+        ],
+        "descripcion_visual": "Detalles visuales.",
+        "eventos": [
+            "Inicio de la prueba"
+        ],
+        "lugares": [
+            "Mar del Este"
+        ],
+        "objetos": [
+            "Sombrero de Paja"
+        ],
+        "curiosidades": [],
+        "relaciones": [],
+        "notas": "",
+        "etiquetas": [
+            "#test",
+            "#manga"
+        ]
+    }
+}
