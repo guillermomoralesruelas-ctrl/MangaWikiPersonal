@@ -1,0 +1,87 @@
+{
+    "knowledge_score": 38.9,
+    "coverage_pct": 100.0,
+    "documented_pages": 2,
+    "total_pages": 2,
+    "critical_entities_count": 0,
+    "suggested_relations_count": 0,
+    "recommendations_count": 0,
+    "low_info_entities": [
+        {
+            "id": "char_000001",
+            "nombre": "Monkey D. Luffy",
+            "tipo": "personaje",
+            "health_score": 40,
+            "prioridad": "Media",
+            "recomendacion": "Falta documentación complementaria.",
+            "is_critical": false
+        },
+        {
+            "id": "char_000002",
+            "nombre": "Roronoa Zoro",
+            "tipo": "personaje",
+            "health_score": 20,
+            "prioridad": "Alta",
+            "recomendacion": "Información extremadamente pobre. Registrar alias o assets visuales.",
+            "is_critical": false
+        },
+        {
+            "id": "event_000001",
+            "nombre": "Inicio de la prueba",
+            "tipo": "evento",
+            "health_score": 20,
+            "prioridad": "Alta",
+            "recomendacion": "Información extremadamente pobre. Registrar alias o assets visuales.",
+            "is_critical": false
+        },
+        {
+            "id": "place_000001",
+            "nombre": "Mar del Este",
+            "tipo": "lugar",
+            "health_score": 20,
+            "prioridad": "Alta",
+            "recomendacion": "Información extremadamente pobre. Registrar alias o assets visuales.",
+            "is_critical": false
+        },
+        {
+            "id": "obj_000001",
+            "nombre": "Sombrero de Paja",
+            "tipo": "objeto",
+            "health_score": 20,
+            "prioridad": "Alta",
+            "recomendacion": "Información extremadamente pobre. Registrar alias o assets visuales.",
+            "is_critical": false
+        },
+        {
+            "id": "char_000003",
+            "nombre": "Gold Roger",
+            "tipo": "personaje",
+            "health_score": 20,
+            "prioridad": "Alta",
+            "recomendacion": "Información extremadamente pobre. Registrar alias o assets visuales.",
+            "is_critical": false
+        },
+        {
+            "id": "char_000004",
+            "nombre": "Luffy",
+            "tipo": "personaje",
+            "health_score": 0,
+            "prioridad": "Alta",
+            "recomendacion": "Información extremadamente pobre. Registrar alias o assets visuales.",
+            "is_critical": false
+        }
+    ],
+    "important_chars_incomplete": [],
+    "orphan_events": [],
+    "underdocumented_places": [],
+    "suggested_relations": [],
+    "incomplete_timeline": [],
+    "immediate_attention_pages": [],
+    "top_recommendations": [],
+    "meta": {
+        "total_entities": 7,
+        "total_relations": 0,
+        "total_timeline": 0,
+        "total_assets": 1
+    }
+}
