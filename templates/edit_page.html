@@ -83,6 +83,9 @@
                 <i class="fa-regular fa-pen-to-square" style="color: var(--accent-gold); margin-right: 8px;"></i>Editor Clásico
             </h2>
             <div style="display: flex; gap: 8px;">
+                <a href="{{ url_for('import_analysis_view', project_id=project.id, page_num=page_num) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; background: var(--accent-gold); color: #000; border-color: var(--accent-gold);">
+                    <i class="fa-solid fa-file-import"></i> Importar ChatGPT
+                </a>
                 <a href="{{ url_for('edit_page', project_id=project.id, page_num=page_num, editor='assisted') }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.4); color: #c084fc;">
                     <i class="fa-solid fa-brain"></i> Editor Asistido
                 </a>
