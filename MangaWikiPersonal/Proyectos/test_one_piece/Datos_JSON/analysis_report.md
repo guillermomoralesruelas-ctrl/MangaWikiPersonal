@@ -1,8 +1,8 @@
 # REPORTE DE ANÁLISIS DE CONOCIMIENTO (KNOWLEDGE ANALYSIS)
 
-*   **Fecha de Generación:** 2026-06-13 18:51:18
+*   **Fecha de Generación:** 2026-06-13 19:00:24
 *   **Proyecto / Tomo:** C:\Users\oaxac\Documents\programas\Manga\onepiece\MangaWikiPersonal\Proyectos\test_one_piece
-*   **Global Knowledge Score:** 38.9%
+*   **Global Knowledge Score:** 39.7%
 *   **Cobertura de Páginas:** 100.0% (2 de 2 páginas)
 
 ---
@@ -17,8 +17,8 @@
 (Entidades activas con baja documentación y/o muchas apariciones)
 *   **Monkey D. Luffy** (personaje | char_000001) - **Salud: 40%** [⚠️ INCOMPLETO]
     *Recomendación:* Falta documentación complementaria.
-*   **Roronoa Zoro** (personaje | char_000002) - **Salud: 20%** [⚠️ INCOMPLETO]
-    *Recomendación:* Información extremadamente pobre. Registrar alias o assets visuales.
+*   **Roronoa Zoro** (personaje | char_000002) - **Salud: 40%** [⚠️ INCOMPLETO]
+    *Recomendación:* Falta documentación complementaria.
 *   **Inicio de la prueba** (evento | event_000001) - **Salud: 20%** [⚠️ INCOMPLETO]
     *Recomendación:* Información extremadamente pobre. Registrar alias o assets visuales.
 *   **Mar del Este** (lugar | place_000001) - **Salud: 20%** [⚠️ INCOMPLETO]

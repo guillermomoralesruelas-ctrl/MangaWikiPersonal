@@ -1,52 +1,52 @@
 {
     "001": {
         "num_pagina": "001",
-        "texto": "Texto de prueba.",
-        "narracion": "Una escena de prueba.",
+        "texto": "Texto modificado",
+        "narracion": "",
         "personajes": [
-            "Monkey D. Luffy"
+            {
+                "entity_id": "char_000001",
+                "nombre": "Monkey D. Luffy"
+            },
+            {
+                "entity_id": "char_000001",
+                "nombre": "Monkey D. Luffy"
+            }
         ],
-        "descripcion_visual": "Detalles visuales.",
-        "eventos": [
-            "Inicio de la prueba"
-        ],
-        "lugares": [
-            "Mar del Este"
-        ],
-        "objetos": [
-            "Sombrero de Paja"
-        ],
-        "curiosidades": [],
-        "relaciones": [],
+        "descripcion_visual": "",
+        "eventos": [],
+        "lugares": [],
+        "objetos": [],
+        "curiosidades": "",
+        "relaciones": "",
         "notas": "",
         "etiquetas": [
-            "#test",
-            "#manga"
+            "#test"
         ]
     },
     "002": {
         "num_pagina": "002",
-        "texto": "Texto de prueba.",
-        "narracion": "Una escena de prueba.",
+        "texto": "",
+        "narracion": "",
         "personajes": [
-            "Roronoa Zoro"
+            {
+                "entity_id": "char_000001",
+                "nombre": "Monkey D. Luffy"
+            },
+            {
+                "entity_id": "char_000002",
+                "nombre": "Roronoa Zoro"
+            }
         ],
-        "descripcion_visual": "Detalles visuales.",
-        "eventos": [
-            "Inicio de la prueba"
-        ],
-        "lugares": [
-            "Mar del Este"
-        ],
-        "objetos": [
-            "Sombrero de Paja"
-        ],
-        "curiosidades": [],
-        "relaciones": [],
+        "descripcion_visual": "",
+        "eventos": [],
+        "lugares": [],
+        "objetos": [],
+        "curiosidades": "",
+        "relaciones": "",
         "notas": "",
         "etiquetas": [
-            "#test",
-            "#manga"
+            "#test"
         ]
     }
 }

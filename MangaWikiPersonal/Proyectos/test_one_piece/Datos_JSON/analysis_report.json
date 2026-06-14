@@ -1,5 +1,5 @@
 {
-    "knowledge_score": 38.9,
+    "knowledge_score": 39.7,
     "coverage_pct": 100.0,
     "documented_pages": 2,
     "total_pages": 2,
@@ -20,9 +20,9 @@
             "id": "char_000002",
             "nombre": "Roronoa Zoro",
             "tipo": "personaje",
-            "health_score": 20,
-            "prioridad": "Alta",
-            "recomendacion": "Información extremadamente pobre. Registrar alias o assets visuales.",
+            "health_score": 40,
+            "prioridad": "Media",
+            "recomendacion": "Falta documentación complementaria.",
             "is_critical": false
         },
         {
