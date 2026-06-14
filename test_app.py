@@ -161,6 +161,11 @@ def run_test():
         if not success:
             raise ValueError(f"Error al agregar alias: {msg}")
             
+        # Add alias Zoro to Roronoa Zoro
+        zoro_id = em.resolve_to_id("Roronoa Zoro")
+        success, msg = em.add_alias(zoro_id, "Zoro")
+        print(f" -> Agregar alias 'Zoro' a Zoro ({zoro_id}): {success} ({msg})")
+            
         # Test Alias Duplicated Validation
         success, msg = em.add_alias(luffy_id, "Mugiwara")
         print(f" -> Intentar duplicar alias 'Mugiwara': {success} ({msg})")
@@ -246,6 +251,116 @@ def run_test():
         assert os.path.exists(export_paths["versioned_json_path"]), "No se exportó el reporte JSON versionado."
         assert os.path.exists(export_paths["versioned_md_path"]), "No se exportó el reporte MD versionado."
         print("[OK] Toda la validación del Knowledge Analysis Engine fue exitosa.")
+
+        # Test Entity Assisted Editor
+        print("\n--- Probando Entity Assisted Editor ---")
+        from app import app
+        app.config['TESTING'] = True
+        client = app.test_client()
+        
+        # 1. API autocomplete endpoint
+        res = client.get(f'/project/{test_project_id}/api/entities')
+        assert res.status_code == 200, "Error en API de entidades"
+        ents = json.loads(res.data)
+        print(f" -> Entidades obtenidas por API: {len(ents)}")
+        
+        # 2. Quick Create entity with similarity checks
+        res = client.post(f'/project/{test_project_id}/api/entity/quick-create', json={
+            "nombre": "Koby",
+            "tipo": "personaje",
+            "alias": ["Coby"]
+        })
+        assert res.status_code == 200, "Error en quick create"
+        qc_res = json.loads(res.data)
+        assert qc_res["status"] == "success"
+        print(f" -> Quick create exitoso para: {qc_res['entity']['nombre']} ({qc_res['entity']['id']})")
+        
+        # Quick create similarity test (Koby vs Koby)
+        res = client.post(f'/project/{test_project_id}/api/entity/quick-create', json={
+            "nombre": "Koby",
+            "tipo": "personaje"
+        })
+        assert res.status_code == 400, "Debió rechazar duplicado exacto"
+        print(" -> Duplicado exacto bloqueado correctamente.")
+        
+        # Quick create warning test (nombres similares)
+        res = client.post(f'/project/{test_project_id}/api/entity/quick-create', json={
+            "nombre": "Kobi",
+            "tipo": "personaje"
+        })
+        qc_warn = json.loads(res.data)
+        assert qc_warn["status"] == "warning", "Debió advertir similitud"
+        print(f" -> Advertencia de similitud capturada: {qc_warn['warnings'][0]}")
+        
+        # 3. Preview impact check
+        res = client.post(f'/project/{test_project_id}/api/page/preview-impact', json={
+            "page_num": "001",
+            "personajes": ["Monkey D. Luffy", "Nami"],
+            "eventos": [],
+            "lugares": [],
+            "objetos": []
+        })
+        assert res.status_code == 200, "Error en impact preview"
+        imp_res = json.loads(res.data)
+        assert imp_res["new_entities"] == 1, "Debería sugerir crear 1 nueva entidad (Nami)"
+        print(f" -> Preview impact reportado: {imp_res['new_entities']} nuevas entidades.")
+        
+        # 4. Save page resolving: Structured format save
+        res = client.post(f'/project/{test_project_id}/page/save/001', data={
+            "texto": "Texto modificado",
+            "personajes_json": json.dumps([
+                {"entity_id": "char_000001", "nombre": "Monkey D. Luffy"},
+                {"entity_id": "", "nombre": "Mugiwara"},
+                {"entity_id": "", "nombre": "Nami"}
+            ]),
+            "eventos_json": "[]",
+            "lugares_json": "[]",
+            "objetos_json": "[]",
+            "relaciones": "",
+            "notas": "",
+            "etiquetas": "#test"
+        })
+        assert res.status_code == 302, "Error al guardar página en modo asistido"
+        
+        # Load pages to verify format
+        pages_after = json_mgr.load_pages()
+        saved_chars = pages_after["001"]["personajes"]
+        print(f" -> Personajes guardados en página 001: {saved_chars}")
+        
+        # Verify Luffy and Mugiwara mapped to Monkey D. Luffy, Nami discarded (Ajuste 3)
+        assert len(saved_chars) == 2, "Deberían guardarse solo 2 personajes (Nami descartada al no tener ID)"
+        assert saved_chars[0]["entity_id"] == "char_000001", "Luffy no resolvió a ID correcto"
+        assert saved_chars[1]["entity_id"] == "char_000001", "Alias Mugiwara no resolvió a ID correcto"
+        
+        # 5. Verify Obsidian page Markdown continues to render plain links
+        page_md_path = os.path.join(test_project_path, "Paginas", "Pagina_001.md")
+        with open(page_md_path, 'r', encoding='utf-8') as f:
+            md_content = f.read()
+        assert "[[Monkey_D._Luffy]]" in md_content, "El markdown no renderizó el link limpio de Luffy"
+        assert "entity_id" not in md_content, "El markdown renderizó el formato diccionario JSON por error"
+        print(" -> Obsidian Markdown renderiza links planos correctamente.")
+        
+        # 6. Verify Classic Editor compatibility: CSV save auto-resolves
+        res = client.post(f'/project/{test_project_id}/page/save/002', data={
+            "editor_mode": "classic",
+            "personajes": "Monkey D. Luffy, Zoro",
+            "eventos": "",
+            "lugares": "",
+            "objetos": "",
+            "relaciones": "",
+            "notas": "",
+            "etiquetas": "#test"
+        })
+        assert res.status_code == 302, "Error al guardar en modo clásico"
+        
+        pages_classic = json_mgr.load_pages()
+        saved_chars_classic = pages_classic["002"]["personajes"]
+        print(f" -> Personajes en clásica: {saved_chars_classic}")
+        assert isinstance(saved_chars_classic[0], dict), "Editor clásico no migró personajes a dict"
+        assert saved_chars_classic[0]["entity_id"] == "char_000001", "Luffy clásica falló resolución"
+        assert saved_chars_classic[1]["entity_id"] == "char_000002", "Zoro clásica falló resolución"
+        
+        print("[OK] Toda la validación del Entity Assisted Editor fue exitosa.")
 
         # Check results
         index_file = os.path.join(test_project_path, "00_Index", "Index.md")

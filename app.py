@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify
 
 from services.project_manager import ProjectManager
 from services.json_manager import ProjectJSONManager, load_json
@@ -233,13 +233,50 @@ def edit_page(project_id, page_num):
     prev_page = f"{curr_int - 1:03d}" if curr_int > 1 else None
     next_page = f"{curr_int + 1:03d}" if curr_int < total else None
     
-    return render_template('edit_page.html',
-                           project=meta,
-                           page_num=page_num,
-                           page_data=page_data,
-                           prev_page=prev_page,
-                           next_page=next_page,
-                           active_page='pages')
+    editor_mode = request.args.get("editor", "assisted")
+    
+    from services.entity_manager import EntityManager
+    em = EntityManager(project_path)
+    
+    import copy
+    page_data_formatted = copy.deepcopy(page_data)
+    
+    if editor_mode == "classic":
+        # Convert list of dicts/strings to list of strings
+        for key in ["personajes", "eventos", "lugares", "objetos"]:
+            raw_list = page_data.get(key, [])
+            page_data_formatted[key] = [x.get("nombre") if isinstance(x, dict) else x for x in raw_list]
+        return render_template('edit_page.html',
+                               project=meta,
+                               page_num=page_num,
+                               page_data=page_data_formatted,
+                               prev_page=prev_page,
+                               next_page=next_page,
+                               active_page='pages')
+    else:
+        # Assisted editor mode: format page_data into dict format
+        for key in ["personajes", "eventos", "lugares", "objetos"]:
+            raw_list = page_data.get(key, [])
+            norm_list = []
+            for x in raw_list:
+                if isinstance(x, dict):
+                    norm_list.append(x)
+                else:
+                    eid = em.resolve_to_id(x) or ""
+                    name = x
+                    if eid:
+                        ent = em.get_entity_by_id(eid)
+                        if ent:
+                            name = ent["nombre"]
+                    norm_list.append({"entity_id": eid, "nombre": name})
+            page_data_formatted[key] = norm_list
+        return render_template('edit_page_assisted.html',
+                               project=meta,
+                               page_num=page_num,
+                               page_data=page_data_formatted,
+                               prev_page=prev_page,
+                               next_page=next_page,
+                               active_page='pages')
 
 @app.route('/project/<project_id>/page/save/<page_num>', methods=['POST'])
 def save_page(project_id, page_num):
@@ -267,16 +304,74 @@ def save_page(project_id, page_num):
             return ""
         return value.strip()
 
+    from services.entity_manager import EntityManager
+    em = EntityManager(project_path)
+    
+    # Check if editor mode was classic
+    is_classic = request.form.get("editor_mode") == "classic"
+    
+    import json
+    
+    def resolve_entities_for_save(raw_items, ent_type, is_classic_mode):
+        resolved_list = []
+        for x in raw_items:
+            if isinstance(x, dict):
+                eid = x.get("entity_id")
+                nombre = x.get("nombre", "").strip()
+                if eid:
+                    resolved_id = em.resolve_redirect_id(eid)
+                    ent = em.get_entity_by_id(resolved_id)
+                    if ent:
+                        resolved_list.append({"entity_id": resolved_id, "nombre": ent["nombre"]})
+                        continue
+                if nombre:
+                    resolved_id = em.resolve_to_id(nombre)
+                    if resolved_id:
+                        ent = em.get_entity_by_id(resolved_id)
+                        resolved_list.append({"entity_id": resolved_id, "nombre": ent["nombre"]})
+                    else:
+                        if is_classic_mode:
+                            new_ent, _ = em.get_or_create_entity(nombre, ent_type)
+                            resolved_list.append({"entity_id": new_ent["id"], "nombre": new_ent["nombre"]})
+            else:
+                nombre = x.strip()
+                if nombre:
+                    resolved_id = em.resolve_to_id(nombre)
+                    if resolved_id:
+                        ent = em.get_entity_by_id(resolved_id)
+                        resolved_list.append({"entity_id": resolved_id, "nombre": ent["nombre"]})
+                    else:
+                        new_ent, _ = em.get_or_create_entity(nombre, ent_type)
+                        resolved_list.append({"entity_id": new_ent["id"], "nombre": new_ent["nombre"]})
+        return resolved_list
+
     # Update page info in memory
     pages[page_num]["texto"] = parse_paragraphs(request.form.get("texto"))
     pages[page_num]["narracion"] = parse_paragraphs(request.form.get("narracion"))
     pages[page_num]["descripcion_visual"] = parse_paragraphs(request.form.get("descripcion_visual"))
-    pages[page_num]["personajes"] = parse_csv(request.form.get("personajes"))
-    pages[page_num]["eventos"] = parse_csv(request.form.get("eventos"))
-    pages[page_num]["lugares"] = parse_csv(request.form.get("lugares"))
-    pages[page_num]["objetos"] = parse_csv(request.form.get("objetos"))
     
-    # Curiosities and Relations (can be single texts or lists, let's treat them as texts)
+    if not is_classic and request.form.get("personajes_json"):
+        try:
+            p_raw = json.loads(request.form.get("personajes_json"))
+            ev_raw = json.loads(request.form.get("eventos_json"))
+            pl_raw = json.loads(request.form.get("lugares_json"))
+            obj_raw = json.loads(request.form.get("objetos_json"))
+        except Exception:
+            p_raw = []
+            ev_raw = []
+            pl_raw = []
+            obj_raw = []
+    else:
+        p_raw = parse_csv(request.form.get("personajes"))
+        ev_raw = parse_csv(request.form.get("eventos"))
+        pl_raw = parse_csv(request.form.get("lugares"))
+        obj_raw = parse_csv(request.form.get("objetos"))
+        
+    pages[page_num]["personajes"] = resolve_entities_for_save(p_raw, "personaje", is_classic)
+    pages[page_num]["eventos"] = resolve_entities_for_save(ev_raw, "evento", is_classic)
+    pages[page_num]["lugares"] = resolve_entities_for_save(pl_raw, "lugar", is_classic)
+    pages[page_num]["objetos"] = resolve_entities_for_save(obj_raw, "objeto", is_classic)
+    
     pages[page_num]["curiosidades"] = parse_paragraphs(request.form.get("curiosidades"))
     pages[page_num]["relaciones"] = parse_paragraphs(request.form.get("relaciones"))
     pages[page_num]["notas"] = parse_paragraphs(request.form.get("notas"))
@@ -299,7 +394,6 @@ def save_page(project_id, page_num):
     all_places = set()
     all_objects = set()
     
-    # Entity to pages appearance mapping
     char_appearances = {}
     event_appearances = {}
     place_appearances = {}
@@ -307,32 +401,40 @@ def save_page(project_id, page_num):
     
     for p_num, p_info in pages.items():
         # Characters
-        for char in p_info.get("personajes", []):
-            all_chars.add(char)
-            if char not in char_appearances:
-                char_appearances[char] = set()
-            char_appearances[char].add(p_num)
+        for item in p_info.get("personajes", []):
+            char = item.get("nombre") if isinstance(item, dict) else item
+            if char:
+                all_chars.add(char)
+                if char not in char_appearances:
+                    char_appearances[char] = set()
+                char_appearances[char].add(p_num)
             
         # Events
-        for ev in p_info.get("eventos", []):
-            all_events.add(ev)
-            if ev not in event_appearances:
-                event_appearances[ev] = set()
-            event_appearances[ev].add(p_num)
+        for item in p_info.get("eventos", []):
+            ev = item.get("nombre") if isinstance(item, dict) else item
+            if ev:
+                all_events.add(ev)
+                if ev not in event_appearances:
+                    event_appearances[ev] = set()
+                event_appearances[ev].add(p_num)
             
         # Places
-        for pl in p_info.get("lugares", []):
-            all_places.add(pl)
-            if pl not in place_appearances:
-                place_appearances[pl] = set()
-            place_appearances[pl].add(p_num)
+        for item in p_info.get("lugares", []):
+            pl = item.get("nombre") if isinstance(item, dict) else item
+            if pl:
+                all_places.add(pl)
+                if pl not in place_appearances:
+                    place_appearances[pl] = set()
+                place_appearances[pl].add(p_num)
             
         # Objects
-        for obj in p_info.get("objetos", []):
-            all_objects.add(obj)
-            if obj not in object_appearances:
-                object_appearances[obj] = set()
-            object_appearances[obj].add(p_num)
+        for item in p_info.get("objetos", []):
+            obj = item.get("nombre") if isinstance(item, dict) else item
+            if obj:
+                all_objects.add(obj)
+                if obj not in object_appearances:
+                    object_appearances[obj] = set()
+                object_appearances[obj].add(p_num)
             
     # Save the updated entity lists to JSON
     json_mgr.save_characters(list(sorted(all_chars)))
@@ -341,8 +443,7 @@ def save_page(project_id, page_num):
     json_mgr.save_objects(list(sorted(all_objects)))
     
     # 4. Auto-migrate to entities.json database and update Obsidian sheets
-    from services.entity_manager import EntityManager
-    EntityManager(project_path).run_auto_migration()
+    em.run_auto_migration()
         
     # 5. Re-generate Index.md
     meta = json_mgr.load_project_meta()
@@ -361,11 +462,15 @@ def save_page(project_id, page_num):
     
     # Redirect to next page or back to edit
     curr_int = int(page_num)
-    if curr_int < meta.get("total_pages", 0):
-        next_page_str = f"{curr_int + 1:03d}"
-        return redirect(url_for('edit_page', project_id=project_id, page_num=next_page_str))
+    save_action = request.form.get("save_action", "next")
     
-    return redirect(url_for('edit_page', project_id=project_id, page_num=page_num))
+    if save_action == "next" and curr_int < meta.get("total_pages", 0):
+        next_page_str = f"{curr_int + 1:03d}"
+        editor_mode_str = "classic" if is_classic else "assisted"
+        return redirect(url_for('edit_page', project_id=project_id, page_num=next_page_str, editor=editor_mode_str))
+    
+    editor_mode_str = "classic" if is_classic else "assisted"
+    return redirect(url_for('edit_page', project_id=project_id, page_num=page_num, editor=editor_mode_str))
 
 @app.route('/project/<project_id>/entity/<entity_type>')
 def list_entities(project_id, entity_type):
@@ -983,6 +1088,209 @@ def open_obsidian_info(project_id):
         flash("La ruta del proyecto no existe.", "error")
         
     return redirect(url_for('view_project', project_id=project_id))
+
+@app.route('/project/<project_id>/api/entities')
+def api_get_entities(project_id):
+    project_path = os.path.join(BASE_PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        return jsonify([])
+    from services.entity_manager import EntityManager
+    em = EntityManager(project_path)
+    entities = em.load_entities()
+    active_entities = [
+        {
+            "id": e["id"],
+            "nombre": e["nombre"],
+            "tipo": e["tipo"],
+            "alias": e.get("alias", [])
+        } for e in entities if e.get("estado") == "activo"
+    ]
+    return jsonify(active_entities)
+
+@app.route('/project/<project_id>/api/entity-context/<entity_id>')
+def api_get_entity_context(project_id, entity_id):
+    project_path = os.path.join(BASE_PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        return jsonify({"error": "Project not found"}), 404
+        
+    from services.entity_manager import EntityManager
+    em = EntityManager(project_path)
+    entities = em.load_entities()
+    
+    resolved_id = em.resolve_redirect_id(entity_id)
+    entity = next((e for e in entities if e["id"] == resolved_id), None)
+    if not entity:
+        return jsonify({"error": "Entity not found"}), 404
+        
+    health = em.calculate_health_score(entity)
+    
+    json_mgr = ProjectJSONManager(project_path)
+    pages = json_mgr.load_pages()
+    appearances_count = 0
+    first_app = entity.get("primera_aparicion", {}).get("pagina", "Pendiente")
+    
+    name_lower = entity["nombre"].lower().strip()
+    aliases_lower = [a.lower().strip() for a in entity.get("alias", [])]
+    
+    for p_num, p_info in pages.items():
+        p_chars = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("personajes", [])]
+        p_events = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("eventos", [])]
+        p_places = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("lugares", [])]
+        p_objects = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("objetos", [])]
+        ent_names = [n.lower().strip() for n in (p_chars + p_events + p_places + p_objects) if n]
+        if name_lower in ent_names or any(al in ent_names for al in aliases_lower):
+            appearances_count += 1
+            if first_app == "Pendiente":
+                first_app = f"Página {p_num}"
+                
+    relations = json_mgr.load_relations()
+    relations_count = sum(1 for r in relations if em.resolve_redirect_id(r.get("source_id")) == resolved_id or em.resolve_redirect_id(r.get("target_id")) == resolved_id)
+    
+    assets_index_path = os.path.join(project_path, "Assets", "index_assets.json")
+    assets = load_json(assets_index_path, default_value=[])
+    assets_count = sum(1 for a in assets if em.resolve_redirect_id(a.get("entity_id")) == resolved_id)
+    
+    timeline = json_mgr.load_timeline()
+    timeline_count = sum(1 for ev in timeline if resolved_id in [em.resolve_redirect_id(p) for p in ev.get("participantes", [])])
+    
+    return jsonify({
+        "id": resolved_id,
+        "nombre": entity["nombre"],
+        "tipo": entity["tipo"],
+        "alias": entity.get("alias", []),
+        "health_score": health,
+        "appearances": appearances_count,
+        "first_appearance": first_app,
+        "assets_count": assets_count,
+        "relations_count": relations_count,
+        "timeline_count": timeline_count
+    })
+
+@app.route('/project/<project_id>/api/entity/quick-create', methods=['POST'])
+def api_quick_create_entity(project_id):
+    project_path = os.path.join(BASE_PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        return jsonify({"error": "Project not found"}), 404
+        
+    data = request.json or {}
+    nombre = data.get("nombre", "").strip()
+    tipo = data.get("tipo", "").strip()
+    alias = [a.strip() for a in data.get("alias", []) if a.strip()]
+    force = data.get("force", False)
+    
+    if not nombre or not tipo:
+        return jsonify({"error": "Nombre y Tipo son requeridos"}), 400
+        
+    from services.entity_manager import EntityManager
+    em = EntityManager(project_path)
+    entities = em.load_entities()
+    
+    # Check exact match
+    for ent in entities:
+        if ent.get("estado") == "activo" and ent["nombre"].strip().lower() == nombre.lower():
+            return jsonify({"error": f"La entidad '{nombre}' ya existe con ID {ent['id']}."}), 400
+            
+    if not force:
+        warnings = []
+        duplicates = []
+        
+        # 1. Alias match check
+        for ent in entities:
+            if ent.get("estado") == "activo":
+                if nombre.lower() in [a.lower() for a in ent.get("alias", [])]:
+                    warnings.append(f"El nombre '{nombre}' ya está registrado como un alias de '{ent['nombre']}' ({ent['id']}).")
+                    duplicates.append({"id": ent["id"], "nombre": ent["nombre"], "tipo": ent["tipo"], "reason": "Conflicto de alias"})
+                for a in alias:
+                    if a.lower() == ent["nombre"].lower():
+                        warnings.append(f"El nuevo alias '{a}' ya es el nombre principal de '{ent['nombre']}' ({ent['id']}).")
+                        duplicates.append({"id": ent["id"], "nombre": ent["nombre"], "tipo": ent["tipo"], "reason": "Alias coincide con nombre"})
+                    elif a.lower() in [al.lower() for al in ent.get("alias", [])]:
+                        warnings.append(f"El nuevo alias '{a}' ya es un alias registrado en '{ent['nombre']}' ({ent['id']}).")
+                        duplicates.append({"id": ent["id"], "nombre": ent["nombre"], "tipo": ent["tipo"], "reason": "Alias duplicado"})
+                        
+        # 2. Levenshtein similarity check
+        from services.entity_manager import levenshtein_distance
+        for ent in entities:
+            if ent.get("estado") == "activo" and ent["tipo"] == tipo:
+                dist = levenshtein_distance(nombre.lower(), ent["nombre"].lower())
+                max_len = max(len(nombre), len(ent["nombre"]))
+                similarity = (1 - dist / max_len) * 100 if max_len > 0 else 100
+                if similarity >= 70:
+                    warnings.append(f"Nombre similar encontrado: '{ent['nombre']}' ({similarity:.1f}% de similitud).")
+                    duplicates.append({"id": ent["id"], "nombre": ent["nombre"], "tipo": ent["tipo"], "reason": f"{similarity:.1f}% similitud"})
+                    
+        if warnings:
+            return jsonify({
+                "status": "warning",
+                "warnings": warnings,
+                "duplicates": duplicates
+            }), 200
+
+    # Creation
+    new_ent, success = em.get_or_create_entity(nombre, tipo)
+    if success and alias:
+        for a in alias:
+            em.add_alias(new_ent["id"], a)
+        entities = em.load_entities()
+        new_ent = next(e for e in entities if e["id"] == new_ent["id"])
+        
+    return jsonify({
+        "status": "success",
+        "entity": {
+            "id": new_ent["id"],
+            "nombre": new_ent["nombre"],
+            "tipo": new_ent["tipo"],
+            "alias": new_ent.get("alias", [])
+        }
+    })
+
+@app.route('/project/<project_id>/api/page/preview-impact', methods=['POST'])
+def api_preview_page_save_impact(project_id):
+    project_path = os.path.join(BASE_PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        return jsonify({"error": "Project not found"}), 404
+        
+    data = request.json or {}
+    page_num = data.get("page_num")
+    
+    json_mgr = ProjectJSONManager(project_path)
+    pages = json_mgr.load_pages()
+    
+    old_page = pages.get(page_num, {})
+    
+    # New inputs posted (parsed dynamically)
+    new_chars_raw = [x.strip() for x in data.get("personajes", []) if x.strip()]
+    new_events_raw = [x.strip() for x in data.get("eventos", []) if x.strip()]
+    new_places_raw = [x.strip() for x in data.get("lugares", []) if x.strip()]
+    new_objects_raw = [x.strip() for x in data.get("objetos", []) if x.strip()]
+    
+    from services.entity_manager import EntityManager
+    em = EntityManager(project_path)
+    
+    new_entities_to_create = []
+    
+    def check_new_entities(raw_list, ent_type):
+        for name in raw_list:
+            if name.startswith("char_") or name.startswith("event_") or name.startswith("place_") or name.startswith("obj_") or name.startswith("org_"):
+                continue
+            resolved_id = em.resolve_to_id(name)
+            if not resolved_id:
+                new_entities_to_create.append({"nombre": name, "tipo": ent_type})
+                
+    check_new_entities(new_chars_raw, "personaje")
+    check_new_entities(new_events_raw, "evento")
+    check_new_entities(new_places_raw, "lugar")
+    check_new_entities(new_objects_raw, "objeto")
+    
+    impact = {
+        "new_entities": len(new_entities_to_create),
+        "new_entities_details": new_entities_to_create,
+        "timeline_updates": 1 if data.get("timeline") or data.get("eventos") else 0,
+        "relations_updates": 1 if data.get("relaciones") else 0,
+        "sources_updates": 1
+    }
+    
+    return jsonify(impact)
 
 if __name__ == '__main__':
     # Default local dev port

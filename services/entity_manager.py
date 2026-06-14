@@ -319,19 +319,20 @@ class EntityManager:
         
         entity_pages = {}
         for p_num, p_info in pages.items():
-            # Gather entities present
-            entities_present = (
-                p_info.get("personajes", []) + 
-                p_info.get("eventos", []) + 
-                p_info.get("lugares", []) + 
-                p_info.get("objetos", [])
-            )
+            # Gather entities present (extracting string name from dictionary if needed)
+            p_chars = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("personajes", [])]
+            p_events = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("eventos", [])]
+            p_places = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("lugares", [])]
+            p_objects = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("objetos", [])]
+            
+            entities_present = p_chars + p_events + p_places + p_objects
             for name in entities_present:
-                eid = self.resolve_to_id(name)
-                if eid:
-                    if eid not in entity_pages:
-                        entity_pages[eid] = set()
-                    entity_pages[eid].add(p_num)
+                if name:
+                    eid = self.resolve_to_id(name)
+                    if eid:
+                        if eid not in entity_pages:
+                            entity_pages[eid] = set()
+                        entity_pages[eid].add(p_num)
                     
         # Update first appearances for entities
         for ent in entities:
@@ -500,7 +501,11 @@ merged
         name_lower = entity["nombre"].lower().strip()
         aliases_lower = [a.lower().strip() for a in entity.get("alias", [])]
         for p_num, p_info in pages.items():
-            ent_names = [x.lower().strip() for x in (p_info.get("personajes", []) + p_info.get("eventos", []) + p_info.get("lugares", []) + p_info.get("objetos", []))]
+            p_chars = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("personajes", [])]
+            p_events = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("eventos", [])]
+            p_places = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("lugares", [])]
+            p_objects = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("objetos", [])]
+            ent_names = [x.lower().strip() for x in (p_chars + p_events + p_places + p_objects) if x]
             if name_lower in ent_names or any(al in ent_names for al in aliases_lower):
                 has_sources = True
                 break
@@ -599,10 +604,30 @@ merged
         for p_num, p_info in pages.items():
             for list_key in ["personajes", "eventos", "lugares", "objetos"]:
                 if list_key in p_info:
-                    items = p_info[list_key]
-                    if sec_name in items:
-                        items = [mas_name if x == sec_name else x for x in items]
-                        p_info[list_key] = list(set(items))
+                    new_items = []
+                    for x in p_info[list_key]:
+                        if isinstance(x, dict):
+                            eid = x.get("entity_id")
+                            nombre = x.get("nombre")
+                            if eid == secondary_id or nombre == sec_name:
+                                new_items.append({"entity_id": master_id, "nombre": mas_name})
+                            else:
+                                new_items.append(x)
+                        else:
+                            if x == sec_name:
+                                new_items.append(mas_name)
+                            else:
+                                new_items.append(x)
+                    
+                    # Deduplicate list
+                    seen = set()
+                    deduped = []
+                    for item in new_items:
+                        key = item["entity_id"] if isinstance(item, dict) else item
+                        if key not in seen:
+                            seen.add(key)
+                            deduped.append(item)
+                    p_info[list_key] = deduped
         json_mgr.save_pages(pages)
         
         # 4. Log the merge
@@ -790,3 +815,11 @@ merged
         
         self.run_auto_migration()
         return True, "Alias eliminado con éxito."
+
+    def get_entity_by_id(self, entity_id):
+        """Returns the entity with the specified ID or None."""
+        entities = self.load_entities()
+        for ent in entities:
+            if ent["id"] == entity_id:
+                return ent
+        return None

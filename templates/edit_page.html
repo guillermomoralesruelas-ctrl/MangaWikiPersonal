@@ -78,16 +78,22 @@
     
     <!-- Right Pane: Markdown Data Form -->
     <div class="form-pane glass-panel" style="padding: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
             <h2 style="margin: 0; font-size: 1.5rem;" class="text-gradient">
-                <i class="fa-regular fa-pen-to-square" style="color: var(--accent-gold); margin-right: 8px;"></i>Editar Datos
+                <i class="fa-regular fa-pen-to-square" style="color: var(--accent-gold); margin-right: 8px;"></i>Editor Clásico
             </h2>
-            <a href="{{ url_for('list_pages', project_id=project.id) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">
-                <i class="fa-solid fa-list"></i> Ver todas
-            </a>
+            <div style="display: flex; gap: 8px;">
+                <a href="{{ url_for('edit_page', project_id=project.id, page_num=page_num, editor='assisted') }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.4); color: #c084fc;">
+                    <i class="fa-solid fa-brain"></i> Editor Asistido
+                </a>
+                <a href="{{ url_for('list_pages', project_id=project.id) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">
+                    <i class="fa-solid fa-list"></i> Ver todas
+                </a>
+            </div>
         </div>
         
         <form action="{{ url_for('save_page', project_id=project.id, page_num=page_num) }}" method="POST" id="editPageForm">
+            <input type="hidden" name="editor_mode" value="classic">
             <!-- Text area fields -->
             <div class="form-group">
                 <label class="form-label" for="texto">Texto de la página (Transcripción del Manga)</label>

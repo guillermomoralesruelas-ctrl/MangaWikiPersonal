@@ -22,15 +22,16 @@ def generate_page_markdown(project_path, page_data):
             return "* Pendiente."
         lines = []
         for item in items:
-            if not item.strip():
+            name = item.get("nombre") if isinstance(item, dict) else item
+            if not name or not name.strip():
                 continue
             if is_link:
-                link_name = clean_filename(item)
+                link_name = clean_filename(name)
                 # If a specific directory in Biblioteca is used
                 prefix = f"Biblioteca/{link_dir}/" if link_dir else ""
                 lines.append(f"* [[{link_name}]]")
             else:
-                lines.append(f"* {item.strip()}")
+                lines.append(f"* {name.strip()}")
         return "\n".join(lines) if lines else "* Pendiente."
 
     def format_text(text):

@@ -59,20 +59,26 @@ class AnalysisEngine:
         appearance_counts = {}
         page_appearances = {} # char_name -> set of page nums
         for p_num, p_info in pages.items():
-            all_names = (p_info.get("personajes", []) + p_info.get("eventos", []) + 
-                         p_info.get("lugares", []) + p_info.get("objetos", []))
+            p_chars = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("personajes", [])]
+            p_events = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("eventos", [])]
+            p_places = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("lugares", [])]
+            p_objects = [x.get("nombre") if isinstance(x, dict) else x for x in p_info.get("objetos", [])]
+            
+            all_names = p_chars + p_events + p_places + p_objects
             for name in all_names:
-                resolved_id = self.entity_mgr.resolve_to_id(name)
-                if resolved_id:
-                    appearance_counts[resolved_id] = appearance_counts.get(resolved_id, 0) + 1
-                    
+                if name:
+                    resolved_id = self.entity_mgr.resolve_to_id(name)
+                    if resolved_id:
+                        appearance_counts[resolved_id] = appearance_counts.get(resolved_id, 0) + 1
+                        
             # Track page appearances specifically for characters
-            for char_name in p_info.get("personajes", []):
-                resolved_id = self.entity_mgr.resolve_to_id(char_name)
-                if resolved_id:
-                    if resolved_id not in page_appearances:
-                        page_appearances[resolved_id] = set()
-                    page_appearances[resolved_id].add(p_num)
+            for char_name in p_chars:
+                if char_name:
+                    resolved_id = self.entity_mgr.resolve_to_id(char_name)
+                    if resolved_id:
+                        if resolved_id not in page_appearances:
+                            page_appearances[resolved_id] = set()
+                        page_appearances[resolved_id].add(p_num)
 
         timeline_counts = {}
         for ev in timeline:
