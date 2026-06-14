@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+.venv/
+venv/
+ENV/
+
+# Large files
+*.pdf
+
+# Project Vaults and Uploads (Excludes user manga vaults and temp directories)
+MangaWikiPersonal/Proyectos/
+temp_uploads/
+
+# IDE configurations
+.idea/
+.vscode/

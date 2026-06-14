@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Hito Timeline - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    
+    <div class="glass-panel" style="padding: 30px;">
+        <h2 class="text-gradient" style="font-size: 1.8rem; margin-bottom: 20px;">
+            <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent-gold); margin-right: 10px;"></i>Nuevo Hito Timeline
+        </h2>
+        <p style="margin-bottom: 24px; font-size: 0.95rem;">
+            Registra un acontecimiento histórico en orden secuencial en el timeline del manga.
+        </p>
+        
+        <form action="{{ url_for('new_timeline_event', project_id=project.id) }}" method="POST">
+            
+            <div class="form-group">
+                <label class="form-label" for="num">Número Secuencial</label>
+                <input type="number" id="num" name="num" class="form-control" 
+                       value="{{ next_num }}" required style="font-family: monospace;">
+                <small style="color: var(--text-muted); display: block; margin-top: 4px; font-size: 0.8rem;">
+                    Identificador de orden temporal de este acontecimiento.
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="nombre">Nombre del Acontecimiento</label>
+                <input type="text" id="nombre" name="nombre" class="form-control" 
+                       placeholder="Ej. Luffy recibe el sombrero de Shanks" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="primera_aparicion">Primera Aparición (Página)</label>
+                <input type="text" id="primera_aparicion" name="primera_aparicion" class="form-control" 
+                       placeholder="Ej. [[Pagina_001]]" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="participantes">Participantes (Mantener presionado Ctrl para seleccionar varios)</label>
+                <select id="participantes" name="participantes" class="form-control" multiple style="height: 120px; padding: 8px;">
+                    {% for cand in candidates %}
+                        <option value="{{ cand }}">{{ cand }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="descripcion">Descripción</label>
+                <textarea id="descripcion" name="descripcion" rows="3" class="form-control" 
+                          placeholder="Describe con tus palabras el acontecimiento..."></textarea>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 30px;">
+                <label class="form-label" for="consecuencias">Consecuencias / Impacto posterior</label>
+                <textarea id="consecuencias" name="consecuencias" rows="3" class="form-control" 
+                          placeholder="¿Qué efectos causó este suceso en la trama o en los personajes?..."></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 12px;">
+                <button type="submit" class="btn btn-primary" style="flex: 2; padding: 12px;">
+                    <i class="fa-solid fa-floppy-disk"></i> Registrar Evento
+                </button>
+                <a href="{{ url_for('library_dashboard', project_id=project.id) }}" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+    
+</div>
+{% endblock %}

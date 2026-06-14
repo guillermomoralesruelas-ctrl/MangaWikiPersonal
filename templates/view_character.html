@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Personaje: {{ character_name }} - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="glass-panel" style="padding: 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+    <div>
+        <h1 class="text-gradient" style="font-size: 1.8rem; margin-bottom: 6px;">
+            <i class="fa-solid fa-user-astronaut" style="color: var(--accent-gold); margin-right: 10px;"></i>{{ character_name }}
+        </h1>
+        <p style="font-size: 0.9rem;">
+            Ficha de personaje. Esta información se guarda en <code>Personajes/{{ filename }}.md</code>.
+        </p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('list_entities', project_id=project.id, entity_type='characters') }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Volver a Personajes
+        </a>
+        <a href="{{ url_for('view_project', project_id=project.id) }}" class="btn btn-secondary">
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+    <!-- General description and other text sections -->
+    <div class="glass-panel" style="padding: 30px; display: flex; flex-direction: column; gap: 24px;">
+        <div>
+            <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; color: var(--accent-gold);">
+                Descripción general
+            </h3>
+            <div style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;">{{ details.desc }}</div>
+        </div>
+        
+        <div>
+            <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; color: var(--accent-gold);">
+                Relaciones
+            </h3>
+            <div style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;">{{ details.relations }}</div>
+        </div>
+        
+        <div>
+            <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; color: var(--accent-gold);">
+                Eventos relacionados
+            </h3>
+            <div style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;">{{ details.events }}</div>
+        </div>
+        
+        <div>
+            <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; color: var(--accent-gold);">
+                Notas personales
+            </h3>
+            <div style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;">{{ details.notes }}</div>
+        </div>
+        
+        <div class="glass-card" style="border-left: 3px solid var(--accent-gold);">
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                <i class="fa-solid fa-circle-info" style="margin-right: 6px;"></i>
+                Para editar la descripción, relaciones o notas de este personaje, edita directamente el archivo Markdown en Obsidian. La lista de apariciones a la derecha se mantendrá sincronizada automáticamente cuando guardes las páginas en las que aparece.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Appearances list -->
+    <div class="glass-panel" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-images" style="color: var(--accent-gold);"></i> Apariciones ({{ appearances|length }})
+        </h3>
+        
+        {% if appearances %}
+            <div style="display: flex; flex-direction: column; gap: 10px; max-height: 500px; overflow-y: auto;">
+                {% for page_num in appearances %}
+                    <a href="{{ url_for('edit_page', project_id=project.id, page_num=page_num) }}" class="glass-card" style="display: flex; align-items: center; gap: 12px; padding: 12px; text-decoration: none; transition: var(--transition-smooth);">
+                        <img src="{{ url_for('get_page_image', project_id=project.id, page_num=page_num) }}" alt="Pág {{ page_num }}" style="width: 50px; aspect-ratio: 3/4; object-fit: cover; border-radius: 4px;">
+                        <div>
+                            <strong style="color: var(--text-primary); font-size: 0.95rem; display: block;">Página {{ page_num }}</strong>
+                            <span style="font-size: 0.75rem; color: var(--accent-gold);">Editar página &rarr;</span>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="font-style: italic; color: var(--text-muted); font-size: 0.9rem;">No se encontraron apariciones registradas.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

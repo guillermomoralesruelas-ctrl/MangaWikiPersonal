@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Centro de Recuperación - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 30px;">
+
+    <!-- Navigation Back -->
+    <div>
+        <a href="{{ url_for('list_entities_explorer', project_id=project.id) }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Explorador
+        </a>
+    </div>
+
+    <!-- Header -->
+    <div class="glass-panel" style="padding: 24px;">
+        <h1 class="text-gradient" style="font-size: 2rem; margin-bottom: 6px;">
+            <i class="fa-solid fa-trash-arrow-up" style="color: var(--accent-red-hover); margin-right: 10px;"></i>Centro de Recuperación (Rollback & Restore)
+        </h1>
+        <p style="font-size: 0.95rem; margin: 0;">
+            Restaura entidades fusionadas de forma segura y audita la bitácora de intervenciones del Entity Resolution Center.
+        </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+        
+        <!-- Main Panel: Soft Deleted (Merged) Entities -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+            <h3 style="font-size: 1.25rem; margin: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                <i class="fa-solid fa-code-compare" style="color: var(--accent-gold); margin-right: 8px;"></i>Entidades Fusionadas (Soft Delete)
+            </h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                {% for item in merged_entities %}
+                <div class="glass-card" style="padding: 16px; border-left: 4px solid var(--accent-red); display: flex; justify-content: space-between; align-items: center; gap: 20px; transition: var(--transition-smooth);">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                            <strong style="font-size: 1.05rem; color: var(--text-primary);">{{ item.nombre }}</strong>
+                            <span class="tag-badge" style="background: rgba(255,255,255,0.05); color: var(--text-secondary); font-family: monospace; font-size: 0.75rem; border-color: transparent;">{{ item.id }}</span>
+                            <span class="tag-badge" style="background: rgba(37,99,235,0.1); color: var(--accent-blue); text-transform: capitalize; font-size: 0.7rem; padding: 2px 6px;">{{ item.tipo }}</span>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+                            Fusionada en la entidad: <strong style="color: var(--accent-gold-hover);">[[{{ item.merged_into }}]]</strong>
+                        </p>
+                        {% if item.merge_info %}
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-style: italic;">
+                            Motivo: {{ item.merge_info.motivo }} (Fecha: {{ item.merge_info.fecha }})
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <form action="{{ url_for('restore_entity_post', project_id=project.id) }}" method="POST" onsubmit="return confirm('¿Confirmas que deseas restaurar esta entidad? Se revertirán todos los assets, relaciones y timeline transferidos.')" style="margin: 0;">
+                            <input type="hidden" name="entity_id" value="{{ item.id }}">
+                            <button type="submit" class="btn btn-primary" style="background: var(--accent-blue); box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3); padding: 8px 16px; font-size: 0.85rem;">
+                                <i class="fa-solid fa-arrow-rotate-left"></i> Restaurar / Revertir
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; color: #10b981; margin-bottom: 12px; display: block;"></i>
+                    <p style="font-size: 0.9rem; margin: 0;">No existen entidades fusionadas en este proyecto. Todo el conocimiento está limpio de duplicados.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Sidebar Panel: Global Changes History -->
+        <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+            <h3 style="font-size: 1.15rem; margin: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                <i class="fa-solid fa-history" style="color: var(--text-secondary); margin-right: 8px;"></i>Bitácora Global
+            </h3>
+            
+            <div style="max-height: 500px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 6px;">
+                {% for log in global_history %}
+                <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px; font-size: 0.8rem; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-family: monospace; font-weight: 600; color: var(--accent-gold-hover);">{{ log.entity_id }}</span>
+                        <span style="font-size: 0.7rem; color: var(--text-muted);">{{ log.fecha }}</span>
+                    </div>
+                    <div>
+                        <span class="tag-badge" style="font-size: 0.6rem; padding: 1px 4px; background: rgba(255,255,255,0.05); color: var(--text-secondary); border-color: transparent; text-transform: uppercase;">{{ log.accion }}</span>
+                        <span style="color: var(--text-primary); font-weight: 500;">{{ log.valor }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <p style="font-style: italic; color: var(--text-muted); font-size: 0.8rem; text-align: center;">Sin registros históricos.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

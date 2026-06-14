@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MangaWiki Personal{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="logo-link">
+                <i class="fa-solid fa-book-open logo-text-gold"></i>
+                <span>MangaWiki <span class="logo-text-gold">Personal</span></span>
+            </a>
+            {% if project %}
+            <nav class="nav-links">
+                <a href="{{ url_for('view_project', project_id=project.id) }}" class="nav-item {% if active_page == 'project' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+                <a href="{{ url_for('list_pages', project_id=project.id) }}" class="nav-item {% if active_page == 'pages' %}active{% endif %}">
+                    <i class="fa-solid fa-file-lines"></i> Páginas
+                </a>
+                <a href="{{ url_for('library_dashboard', project_id=project.id) }}" class="nav-item {% if active_page == 'library' %}active{% endif %}">
+                    <i class="fa-solid fa-graduation-cap"></i> Biblioteca
+                </a>
+                <a href="{{ url_for('list_entities_explorer', project_id=project.id) }}" class="nav-item {% if active_page == 'entities' %}active{% endif %}">
+                    <i class="fa-solid fa-database"></i> Entidades
+                </a>
+                <a href="{{ url_for('list_assets', project_id=project.id) }}" class="nav-item {% if active_page == 'assets' %}active{% endif %}">
+                    <i class="fa-solid fa-crop-simple"></i> Assets
+                </a>
+            </nav>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Proyecto: <strong style="color: var(--text-primary);">{{ project.name }}</strong>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div style="margin-bottom: 20px;">
+                    {% for category, message in messages %}
+                        <div class="glass-panel" style="padding: 12px 20px; border-left: 4px solid {% if category == 'error' %}var(--accent-red){% else %}var(--accent-gold){% endif %}; margin-bottom: 10px; font-size: 0.95rem;">
+                            <i class="fa-solid {% if category == 'error' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}" style="margin-right: 8px; color: {% if category == 'error' %}var(--accent-red){% else %}var(--accent-gold){% endif %};"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>MangaWiki Personal &copy; 2026 - Herramienta local compatible con Obsidian para organizar tus Mangas sin IA ni OCR.</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

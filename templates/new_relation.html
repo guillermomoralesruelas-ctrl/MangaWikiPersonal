@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Relación - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    
+    <div class="glass-panel" style="padding: 30px;">
+        <h2 class="text-gradient" style="font-size: 1.8rem; margin-bottom: 20px;">
+            <i class="fa-solid fa-link" style="color: var(--accent-gold); margin-right: 10px;"></i>Registrar Relación
+        </h2>
+        <p style="margin-bottom: 24px; font-size: 0.95rem;">
+            Crea una relación direccional o asociativa entre dos entidades (personajes u organizaciones) de tu biblioteca.
+        </p>
+        
+        <form action="{{ url_for('new_relation', project_id=project.id) }}" method="POST">
+            
+            <div class="form-group">
+                <label class="form-label" for="entidad_a">Entidad A</label>
+                <select id="entidad_a" name="entidad_a" class="form-control" required style="padding: 12px;">
+                    <option value="" disabled selected>Selecciona la primera entidad...</option>
+                    {% for cand in candidates %}
+                        <option value="{{ cand }}">{{ cand }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="entidad_b">Entidad B</label>
+                <select id="entidad_b" name="entidad_b" class="form-control" required style="padding: 12px;">
+                    <option value="" disabled selected>Selecciona la segunda entidad...</option>
+                    {% for cand in candidates %}
+                        <option value="{{ cand }}">{{ cand }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="tipo">Tipo de Relación</label>
+                <input type="text" id="tipo" name="tipo" class="form-control" 
+                       placeholder="Ej. Rival / Mentor / Aliado / Capitán / Enemigo" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="evidencia">Evidencia (Página o Hito de Origen)</label>
+                <input type="text" id="evidencia" name="evidencia" class="form-control" 
+                       placeholder="Ej. [[Pagina_005]]" required>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 30px;">
+                <label class="form-label" for="notas">Notas / Contexto de la relación</label>
+                <textarea id="notas" name="notas" rows="4" class="form-control" 
+                          placeholder="Describe brevemente el porqué de esta relación y detalles notables..."></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 12px;">
+                <button type="submit" class="btn btn-primary" style="flex: 2; padding: 12px;">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Relación
+                </button>
+                <a href="{{ url_for('library_dashboard', project_id=project.id) }}" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+    
+</div>
+{% endblock %}

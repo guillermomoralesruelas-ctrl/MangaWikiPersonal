@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="glass-panel" style="padding: 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+    <div>
+        <h1 class="text-gradient" style="font-size: 1.8rem; margin-bottom: 6px;">{{ title }}</h1>
+        <p style="font-size: 0.9rem;">
+            Listado completo de <strong>{{ items|length }} {{ title.lower() }}</strong> detectados en las páginas del manga.
+        </p>
+    </div>
+    <div>
+        <a href="{{ url_for('view_project', project_id=project.id) }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="glass-panel" style="padding: 30px;">
+    {% if items %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+            {% for item in items %}
+                <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+                    <div>
+                        <h3 style="font-size: 1.2rem; color: var(--accent-gold); margin-bottom: 4px;">{{ item }}</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-muted);">
+                            Haga clic abajo para ver el detalle y las apariciones de esta nota en Obsidian.
+                        </p>
+                    </div>
+                    {% if entity_type == 'characters' %}
+                        <a href="{{ url_for('view_character', project_id=project.id, name=item) }}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;">
+                            <i class="fa-solid fa-eye"></i> Ver Ficha y Apariciones
+                        </a>
+                    {% else %}
+                        <div style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">
+                            Guardado en carpeta: {{ title }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="fa-regular fa-bookmark" style="font-size: 3rem; margin-bottom: 12px; display: block; color: var(--text-muted);"></i>
+            <p>No se han registrado elementos de esta categoría en la wiki todavía.</p>
+            <p style="font-size: 0.85rem; margin-top: 8px;">Añade nombres en los campos correspondientes al editar las páginas para crearlos automáticamente.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

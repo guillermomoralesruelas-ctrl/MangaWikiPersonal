@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Assets Visuales - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 30px;">
+    
+    <!-- Hero / Action Header -->
+    <div class="glass-panel" style="padding: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <h1 class="text-gradient" style="font-size: 2rem; margin-bottom: 6px;">
+                <i class="fa-solid fa-crop-simple" style="color: var(--accent-gold); margin-right: 10px;"></i>Assets Visuales del Manga
+            </h1>
+            <p style="font-size: 0.95rem;">
+                Recortes, planos, personajes y escenas extraídos automáticamente mediante coordenadas JSON y almacenados en la bóveda de Obsidian.
+            </p>
+        </div>
+        
+        <div>
+            <a href="{{ url_for('view_project', project_id=project.id) }}" class="btn btn-secondary">
+                <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <!-- Statistics & Upload JSON Panel -->
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; align-items: start;">
+        
+        <!-- Stats Widgets -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <div class="glass-card" style="border-left: 3px solid var(--accent-gold); padding: 15px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px;">Total Recortes</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);">{{ stats.total }}</div>
+                </div>
+                <i class="fa-solid fa-shapes" style="font-size: 2.2rem; color: rgba(255,255,255,0.05);"></i>
+            </div>
+            <div class="glass-card" style="border-left: 3px solid var(--accent-blue); padding: 15px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px;">Personajes</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: var(--accent-blue);">{{ stats.personajes }}</div>
+                </div>
+                <i class="fa-solid fa-user-astronaut" style="font-size: 2.2rem; color: rgba(255,255,255,0.05);"></i>
+            </div>
+            <div class="glass-card" style="border-left: 3px solid #10b981; padding: 15px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px;">Objetos</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #10b981;">{{ stats.objetos }}</div>
+                </div>
+                <i class="fa-solid fa-gem" style="font-size: 2.2rem; color: rgba(255,255,255,0.05);"></i>
+            </div>
+            <div class="glass-card" style="border-left: 3px solid #8b5cf6; padding: 15px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px;">Lugares</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #8b5cf6;">{{ stats.lugares }}</div>
+                </div>
+                <i class="fa-solid fa-earth-americas" style="font-size: 2.2rem; color: rgba(255,255,255,0.05);"></i>
+            </div>
+        </div>
+        
+        <!-- Upload JSON Form -->
+        <div class="glass-panel" style="padding: 20px;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 10px;">
+                <i class="fa-solid fa-file-import" style="color: var(--accent-gold); margin-right: 8px;"></i>Importar Coordenadas (JSON)
+            </h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 15px;">
+                Sube el archivo <code>detecciones.json</code> generado por ChatGPT para recortar y clasificar los elementos automáticamente.
+            </p>
+            <form action="{{ url_for('upload_detections', project_id=project.id) }}" method="POST" enctype="multipart/form-data">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="file" name="detections_file" class="form-control" accept=".json" required style="padding: 8px; font-size: 0.85rem;">
+                    <button type="submit" class="btn btn-primary" style="padding: 10px 16px; font-size: 0.85rem; white-space: nowrap;">
+                        <i class="fa-solid fa-play"></i> Recortar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Filter Section -->
+    <div class="glass-panel" style="padding: 20px;">
+        <h3 style="font-size: 1.15rem; margin-bottom: 15px;">
+            <i class="fa-solid fa-filter" style="color: var(--accent-gold); margin-right: 8px;"></i>Filtros de Búsqueda
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="filterType">Categoría / Tipo</label>
+                <select id="filterType" class="form-control" onchange="applyFilters()" style="padding: 10px;">
+                    <option value="all">Todos los tipos</option>
+                    {% for raw_type, folder_name in type_map.items() %}
+                        <option value="{{ raw_type }}">{{ raw_type.replace('_', ' ').capitalize() }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="filterName">Nombre</label>
+                <input type="text" id="filterName" class="form-control" placeholder="Buscar por nombre..." onkeyup="applyFilters()" style="padding: 10px;">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="filterPage">Número de Página</label>
+                <input type="number" id="filterPage" class="form-control" placeholder="Ej. 1" onchange="applyFilters()" onkeyup="applyFilters()" style="padding: 10px;">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="filterTags">Etiquetas</label>
+                <input type="text" id="filterTags" class="form-control" placeholder="Ej. rey_de_los_piratas" onkeyup="applyFilters()" style="padding: 10px;">
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Assets Gallery Grid -->
+    <div class="glass-panel" style="padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+            <h3 style="margin: 0; font-size: 1.25rem;">Galería de Recortes (<span id="visibleCount">{{ assets|length }}</span>)</h3>
+        </div>
+        
+        {% if assets %}
+            <div id="galleryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                {% for asset in assets %}
+                    <div class="glass-card asset-card" 
+                         data-type="{{ asset.tipo }}" 
+                         data-name="{{ asset.nombre|lower }}" 
+                         data-page="{{ asset.pagina }}" 
+                         data-tags="{{ asset.tags|join(' ')|lower }}"
+                         style="display: flex; flex-direction: column; height: 100%; justify-content: space-between; gap: 15px;">
+                        
+                        <!-- Thumbnail view -->
+                        <div style="width: 100%; aspect-ratio: 4/3; background: rgba(0,0,0,0.5); border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); position: relative;">
+                            <img src="{{ url_for('serve_asset_image', project_id=project.id, filename=asset.archivo.replace('Assets/', '')) }}" 
+                                 alt="{{ asset.nombre }}" 
+                                 style="max-width: 100%; max-height: 100%; object-fit: contain; display: block; border-radius: 4px;">
+                            
+                            <!-- Badges floating on image -->
+                            <span class="tag-badge" style="position: absolute; bottom: 8px; left: 8px; background: rgba(37, 99, 235, 0.85); color: #fff; border: none; font-size: 0.7rem;">
+                                Pág. {{ asset.pagina }}
+                            </span>
+                            <span class="tag-badge" style="position: absolute; bottom: 8px; right: 8px; background: rgba(217, 119, 6, 0.85); color: #fff; border: none; font-size: 0.7rem; text-transform: uppercase;">
+                                {{ asset.tipo.replace('_', ' ') }}
+                            </span>
+                        </div>
+                        
+                        <!-- Card Metadata -->
+                        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+                            <h4 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">{{ asset.nombre }}</h4>
+                            <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">ID: {{ asset.id }}</span>
+                            
+                            {% if asset.descripcion %}
+                                <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; margin-top: 4px;">
+                                    {{ asset.descripcion }}
+                                </p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Tags -->
+                        <div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+                                {% for tag in asset.tags %}
+                                    <span class="tag-badge" style="font-size: 0.65rem; background: rgba(255,255,255,0.05); color: var(--text-secondary); border-color: rgba(255,255,255,0.1);">
+                                        #{{ tag }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Open Link -->
+                            {% if asset.tipo == 'personaje' %}
+                                <a href="{{ url_for('view_character', project_id=project.id, name=asset.nombre) }}" class="btn btn-secondary" style="width: 100%; font-size: 0.8rem; padding: 6px 12px; text-align: center;">
+                                    <i class="fa-solid fa-user-astronaut"></i> Ver Ficha Personaje
+                                </a>
+                            {% else %}
+                                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; border: 1px solid var(--border-color); padding: 5px; border-radius: 6px;">
+                                    Guardado en: <code>{{ asset.archivo }}</code>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fa-solid fa-shapes" style="font-size: 3.5rem; color: var(--text-muted); margin-bottom: 16px; display: block;"></i>
+                <p>No se encontraron recortes o assets en la base de datos.</p>
+                <p style="font-size: 0.85rem; margin-top: 10px;">Sube un archivo <code>detecciones.json</code> usando el panel de arriba para recortar tu primer elemento visual.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function applyFilters() {
+        const typeFilter = document.getElementById('filterType').value;
+        const nameFilter = document.getElementById('filterName').value.trim().toLowerCase();
+        const pageFilter = document.getElementById('filterPage').value.trim();
+        const tagsFilter = document.getElementById('filterTags').value.trim().toLowerCase();
+        
+        const cards = document.querySelectorAll('.asset-card');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const cardType = card.getAttribute('data-type');
+            const cardName = card.getAttribute('data-name');
+            const cardPage = card.getAttribute('data-page');
+            const cardTags = card.getAttribute('data-tags');
+            
+            let matchType = (typeFilter === 'all' || cardType === typeFilter);
+            let matchName = (!nameFilter || cardName.includes(nameFilter));
+            let matchPage = (!pageFilter || cardPage === pageFilter);
+            let matchTags = (!tagsFilter || cardTags.includes(tagsFilter));
+            
+            if (matchType && matchName && matchPage && matchTags) {
+                card.style.display = 'flex';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('visibleCount').textContent = visibleCount;
+        
+        // Show empty gallery message if visibleCount is 0
+        const grid = document.getElementById('galleryGrid');
+        if (grid) {
+            let msg = document.getElementById('noResultsMsg');
+            if (visibleCount === 0) {
+                if (!msg) {
+                    msg = document.createElement('div');
+                    msg.id = 'noResultsMsg';
+                    msg.className = 'empty-state';
+                    msg.style.gridColumn = '1 / -1';
+                    msg.innerHTML = '<i class="fa-regular fa-face-frown" style="font-size: 2.5rem; margin-bottom: 12px; display: block;"></i><p>No se encontraron recortes que coincidan con los filtros aplicados.</p>';
+                    grid.appendChild(msg);
+                }
+            } else {
+                if (msg) {
+                    msg.remove();
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

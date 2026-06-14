@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil de Entidad - {{ entity.nombre }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 30px;">
+
+    <!-- Navigation Back -->
+    <div>
+        <a href="{{ url_for('list_entities_explorer', project_id=project.id) }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Explorador
+        </a>
+    </div>
+
+    <!-- Header / Status Banner -->
+    <div class="glass-panel" style="padding: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="tag-badge" style="background: rgba(217, 119, 6, 0.15); color: var(--accent-gold); font-family: monospace; font-size: 0.85rem;">{{ entity.id }}</span>
+                <span style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">{{ entity.tipo }}</span>
+            </div>
+            <h1 class="text-gradient" style="font-size: 2.2rem; margin: 8px 0 4px 0;">
+                {{ entity.nombre }}
+            </h1>
+            <p style="font-size: 0.95rem; margin: 0;">
+                Ficha administrativa de la entidad maestra.
+            </p>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 15px;">
+            {% if entity.estado == 'activo' %}
+                <span class="tag-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 8px 16px; font-size: 0.9rem; border-color: rgba(16, 185, 129, 0.3);">
+                    <i class="fa-solid fa-circle-check" style="margin-right: 6px;"></i> Activo (Health: {{ health }})
+                </span>
+            {% else %}
+                <span class="tag-badge" style="background: rgba(220, 38, 38, 0.15); color: var(--accent-red); padding: 8px 16px; font-size: 0.9rem; border-color: rgba(220, 38, 38, 0.3);">
+                    <i class="fa-solid fa-code-merge" style="margin-right: 6px;"></i> Fusionada en [[{{ entity.merged_into }}]]
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Two Column Detail Layout -->
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; align-items: start;">
+        
+        <!-- Left Column: Details & Alias Manager -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- General Info Panel -->
+            <div class="glass-panel" style="padding: 20px;">
+                <h3 style="font-size: 1.15rem; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <i class="fa-solid fa-circle-info" style="color: var(--accent-gold); margin-right: 8px;"></i>Información General
+                </h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem;">
+                    <div>
+                        <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase;">Primera Aparición en Documentos</span>
+                        {% if entity.primera_aparicion and entity.primera_aparicion.pagina != 'Pendiente' %}
+                            <a href="{{ url_for('edit_page', project_id=project.id, page_num=entity.primera_aparicion.pagina.split('_')[1]) }}" style="color: var(--text-primary); font-weight: 600; text-decoration: none;">
+                                <i class="fa-solid fa-file-invoice" style="margin-right: 4px; color: var(--accent-gold);"></i> {{ entity.primera_aparicion.pagina }}
+                            </a>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-style: italic;">Pendiente de registrar</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase;">Primer Asset Visual (Recorte)</span>
+                        {% if entity.primera_aparicion and entity.primera_aparicion.asset != 'Pendiente' %}
+                            <span style="font-family: monospace; color: var(--text-primary); font-weight: 600;">
+                                <i class="fa-solid fa-crop-simple" style="margin-right: 4px; color: var(--accent-red);"></i> {{ entity.primera_aparicion.asset }}
+                            </span>
+                        {% else %}
+                            <span style="color: var(--text-muted); font-style: italic;">Pendiente de registrar</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase;">Estado de Integridad (Salud)</span>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                            <div style="flex: 1; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.05); overflow: hidden;">
+                                <div style="width: {{ health }}%; height: 100%; background: {% if health > 80 %}#10b981{% elif health > 40 %}var(--accent-gold){% else %}var(--accent-red){% endif %};"></div>
+                            </div>
+                            <strong style="font-size: 0.9rem;">{{ health }}%</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alias Manager Panel -->
+            <div class="glass-panel" style="padding: 20px;">
+                <h3 style="font-size: 1.15rem; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <i class="fa-solid fa-tags" style="color: var(--accent-blue); margin-right: 8px;"></i>Gestor de Alias
+                </h3>
+                
+                <!-- Alias Add Form -->
+                {% if entity.estado == 'activo' %}
+                <form action="{{ url_for('add_entity_alias', project_id=project.id, entity_id=entity.id) }}" method="POST" style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <input type="text" name="alias_name" placeholder="Nuevo alias (ej: Luffy)..." class="form-control" required style="padding: 8px 12px; font-size: 0.85rem;">
+                    <button type="submit" class="btn btn-primary" style="padding: 8px 12px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-plus"></i> Agregar
+                    </button>
+                </form>
+                {% endif %}
+
+                <!-- Alias list -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    {% for alias in entity.alias %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.9rem;">
+                        <span>{{ alias }}</span>
+                        {% if entity.estado == 'activo' %}
+                        <form action="{{ url_for('delete_entity_alias', project_id=project.id, entity_id=entity.id) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar este alias?')" style="margin: 0;">
+                            <input type="hidden" name="alias_name" value="{{ alias }}">
+                            <button type="submit" style="background: none; border: none; color: var(--accent-red); cursor: pointer; padding: 2px 6px;">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p style="font-style: italic; color: var(--text-muted); font-size: 0.85rem;">No hay alias registrados.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Gallery, Relations, Timeline, History -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- Visual Assets Gallery -->
+            <div class="glass-panel" style="padding: 24px;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <i class="fa-solid fa-images" style="color: var(--accent-red); margin-right: 8px;"></i>Apariciones Visuales (Assets Recortados)
+                </h3>
+                {% if assets %}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px;">
+                        {% for asset in assets %}
+                        <div class="glass-card" style="padding: 8px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;">
+                            <div style="width: 100%; aspect-ratio: 1; background: rgba(0,0,0,0.3); border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                                <img src="{{ url_for('serve_asset_image', project_id=project.id, filename=asset.archivo.split('Assets/')[1]) }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            </div>
+                            <span style="font-size: 0.75rem; font-family: monospace; font-weight: 600; color: var(--text-secondary);">
+                                {{ asset.id }}
+                            </span>
+                            <span class="tag-badge" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent;">
+                                Pág. {{ asset.pagina }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="font-style: italic; color: var(--text-muted); font-size: 0.9rem; margin: 0;">No hay recortes de imágenes vinculados a esta entidad.</p>
+                {% endif %}
+            </div>
+
+            <!-- Relations List -->
+            <div class="glass-panel" style="padding: 24px;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <i class="fa-solid fa-arrows-spin" style="color: #10b981; margin-right: 8px;"></i>Relaciones Vinculadas
+                </h3>
+                {% if relations %}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                        {% for rel in relations %}
+                        <div class="glass-card" style="border-top: 3px solid #10b981; padding: 12px 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span class="tag-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">
+                                    {{ rel.tipo }}
+                                </span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">Evidencia: {{ rel.evidencia }}</span>
+                            </div>
+                            <div style="font-size: 0.9rem; font-weight: 600; text-align: center;">
+                                <span style="color: {% if rel.source_id == entity.id %}var(--accent-gold){% else %}var(--text-primary){% endif %};">{{ rel.entidad_a }}</span>
+                                <i class="fa-solid fa-arrow-right" style="margin: 0 6px; font-size: 0.8rem; color: var(--text-muted);"></i>
+                                <span style="color: {% if rel.target_id == entity.id %}var(--accent-gold){% else %}var(--text-primary){% endif %};">{{ rel.entidad_b }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="font-style: italic; color: var(--text-muted); font-size: 0.9rem; margin: 0;">No hay relaciones registradas para esta entidad.</p>
+                {% endif %}
+            </div>
+
+            <!-- Timeline Appearances -->
+            <div class="glass-panel" style="padding: 24px;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <i class="fa-solid fa-timeline" style="color: var(--accent-gold); margin-right: 8px;"></i>Participación en Timeline
+                </h3>
+                {% if timeline %}
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        {% for event in timeline %}
+                        <div class="glass-card" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 style="font-size: 0.95rem; margin: 0; color: var(--text-primary);">
+                                    {{ "%04d" | format(event.num) }} - {{ event.nombre }}
+                                </h4>
+                                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.3;">
+                                    {{ event.descripcion }}
+                                </p>
+                            </div>
+                            <span class="tag-badge" style="background: rgba(217, 119, 6, 0.1); color: var(--accent-gold); border-color: rgba(217,119,6,0.25);">
+                                {{ event.primera_aparicion }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="font-style: italic; color: var(--text-muted); font-size: 0.9rem; margin: 0;">Esta entidad no registra hitos cronológicos en el timeline.</p>
+                {% endif %}
+            </div>
+
+            <!-- History Logs -->
+            <div class="glass-panel" style="padding: 24px;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    <i class="fa-solid fa-clock-rotate-left" style="color: var(--text-muted); margin-right: 8px;"></i>Historial de Cambios e Intervenciones
+                </h3>
+                <div style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 6px;">
+                    {% for log in history %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 0.85rem; border: 1px solid var(--border-color);">
+                        <div>
+                            <span class="tag-badge" style="font-size: 0.65rem; padding: 2px 6px; margin-right: 8px; text-transform: uppercase; background: rgba(255,255,255,0.05); color: var(--text-secondary); border-color: transparent;">
+                                {{ log.accion }}
+                            </span>
+                            <span style="color: var(--text-primary);">{{ log.valor }}</span>
+                        </div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">{{ log.fecha }}</span>
+                    </div>
+                    {% else %}
+                    <p style="font-style: italic; color: var(--text-muted); font-size: 0.85rem; margin: 0;">No se registran cambios históricos aún.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Explorador de Entidades - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 30px;">
+
+    <!-- Header -->
+    <div class="glass-panel" style="padding: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <h1 class="text-gradient" style="font-size: 2rem; margin-bottom: 6px;">
+                <i class="fa-solid fa-database" style="color: var(--accent-gold); margin-right: 10px;"></i>Explorador de Entidades Maestras
+            </h1>
+            <p style="font-size: 0.95rem;">
+                Busca, edita, audita la salud de las entidades, y gestiona alias y fusiones de forma segura.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('view_recovery', project_id=project.id) }}" class="btn btn-secondary" style="border-color: rgba(220, 38, 38, 0.4); color: var(--accent-red-hover);">
+                <i class="fa-solid fa-trash-arrow-up"></i> Centro de Recuperación
+            </a>
+        </div>
+    </div>
+
+    <!-- Duplicate Detection Alerts -->
+    {% if duplicates %}
+    <div class="glass-panel" style="padding: 20px; border-left: 4px solid var(--accent-gold); background: rgba(217, 119, 6, 0.05);">
+        <h3 style="font-size: 1.15rem; color: var(--accent-gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Posibles Duplicados Detectados (Decisión Humana Requerida)
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% for dup in duplicates %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                <div>
+                    <span style="font-weight: 600; color: var(--text-primary);">{{ dup.entity_1.nombre }}</span> 
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">({{ dup.entity_1.id }})</span>
+                    <i class="fa-solid fa-arrows-left-right" style="margin: 0 10px; color: var(--accent-gold);"></i>
+                    <span style="font-weight: 600; color: var(--text-primary);">{{ dup.entity_2.nombre }}</span> 
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">({{ dup.entity_2.id }})</span>
+                    <span style="margin-left: 15px;" class="tag-badge" style="background: rgba(217, 119, 6, 0.15); color: var(--accent-gold);">
+                        Coincidencia: {{ dup.confidence }}%
+                    </span>
+                </div>
+                <button onclick="openMergeModal('{{ dup.entity_1.id }}', '{{ dup.entity_1.nombre }}', '{{ dup.entity_2.id }}', '{{ dup.entity_2.nombre }}')" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85rem;">
+                    <i class="fa-solid fa-code-merge"></i> Fusionar
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filters & Search -->
+    <div class="glass-panel" style="padding: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+        <div style="flex: 1; min-width: 250px; position: relative;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 14px; color: var(--text-muted);"></i>
+            <input type="text" id="searchInput" onkeyup="filterEntities()" placeholder="Buscar por ID, nombre o alias..." class="form-control" style="padding-left: 38px;">
+        </div>
+        
+        <div style="min-width: 150px;">
+            <select id="typeFilter" onchange="filterEntities()" class="form-control">
+                <option value="">Todos los Tipos</option>
+                <option value="personaje">Personaje</option>
+                <option value="evento">Evento</option>
+                <option value="lugar">Lugar</option>
+                <option value="objeto">Objeto</option>
+                <option value="organizacion">Organización</option>
+                <option value="vehiculo">Vehículo</option>
+                <option value="arma">Arma</option>
+                <option value="animal">Animal</option>
+                <option value="comida">Comida</option>
+                <option value="simbolo">Símbolo</option>
+                <option value="escena">Escena</option>
+            </select>
+        </div>
+
+        <div style="min-width: 150px;">
+            <select id="statusFilter" onchange="filterEntities()" class="form-control">
+                <option value="activo">Solo Activos</option>
+                <option value="merged">Solo Fusionados</option>
+                <option value="all">Todos los Estados</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Table of Entities -->
+    <div class="glass-panel" style="overflow-x: auto; padding: 12px;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-secondary);">
+                    <th style="padding: 14px 16px;">Entity ID</th>
+                    <th style="padding: 14px 16px;">Tipo</th>
+                    <th style="padding: 14px 16px;">Nombre Principal</th>
+                    <th style="padding: 14px 16px;">Alias</th>
+                    <th style="padding: 14px 16px; text-align: center;">Salud</th>
+                    <th style="padding: 14px 16px; text-align: center;">Apariciones</th>
+                    <th style="padding: 14px 16px; text-align: center;">Assets</th>
+                    <th style="padding: 14px 16px; text-align: center;">Relaciones</th>
+                    <th style="padding: 14px 16px; text-align: center;">Estado</th>
+                    <th style="padding: 14px 16px; text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="entitiesTableBody">
+                {% for item in entities %}
+                <tr class="entity-row" style="border-bottom: 1px solid var(--border-color); transition: var(--transition-smooth);" 
+                    data-id="{{ item.entity.id }}"
+                    data-tipo="{{ item.entity.tipo }}"
+                    data-nombre="{{ item.entity.nombre }}"
+                    data-alias="{{ item.entity.alias | join(', ') }}"
+                    data-estado="{{ item.entity.estado }}">
+                    
+                    <td style="padding: 14px 16px; font-family: monospace; font-weight: 600;">
+                        {{ item.entity.id }}
+                    </td>
+                    <td style="padding: 14px 16px; text-transform: capitalize;">
+                        {{ item.entity.tipo }}
+                    </td>
+                    <td style="padding: 14px 16px; font-weight: 600;">
+                        <a href="{{ url_for('view_entity', project_id=project.id, entity_id=item.entity.id) }}" style="color: var(--accent-gold-hover); text-decoration: none;">
+                            {{ item.entity.nombre }}
+                        </a>
+                    </td>
+                    <td style="padding: 14px 16px; color: var(--text-secondary); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {% if item.entity.alias %}
+                            {{ item.entity.alias | join(', ') }}
+                        {% else %}
+                            <span style="color: var(--text-muted); font-style: italic;">Sin alias</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 14px 16px; text-align: center;">
+                        {% if item.entity.estado == 'merged' %}
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">-</span>
+                        {% else %}
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <div style="width: 40px; background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; overflow: hidden;">
+                                    <div style="width: {{ item.health }}%; height: 100%; background: {% if item.health > 80 %}#10b981{% elif item.health > 40 %}var(--accent-gold){% else %}var(--accent-red){% endif %};"></div>
+                                </div>
+                                <span style="font-weight: 600; font-size: 0.8rem;">{{ item.health }}</span>
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 14px 16px; text-align: center;">
+                        {{ item.stats.appearances }}
+                    </td>
+                    <td style="padding: 14px 16px; text-align: center;">
+                        {{ item.stats.assets }}
+                    </td>
+                    <td style="padding: 14px 16px; text-align: center;">
+                        {{ item.stats.relations }}
+                    </td>
+                    <td style="padding: 14px 16px; text-align: center;">
+                        {% if item.entity.estado == 'activo' %}
+                            <span class="tag-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">Activo</span>
+                        {% else %}
+                            <span class="tag-badge" style="background: rgba(220, 38, 38, 0.15); color: var(--accent-red); border-color: rgba(220, 38, 38, 0.3);">Fusionado</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 14px 16px; text-align: center;">
+                        <a href="{{ url_for('view_entity', project_id=project.id, entity_id=item.entity.id) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">
+                            <i class="fa-solid fa-user-pen"></i> Administrar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- Merge Modal Dialog -->
+<div id="mergeModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px);">
+    <div class="glass-panel" style="max-width: 500px; width: 100%; padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+        <h3 style="font-size: 1.25rem; margin: 0; color: var(--text-gradient); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-code-merge" style="color: var(--accent-gold);"></i> Fusionar Entidades
+        </h3>
+        
+        <form action="{{ url_for('merge_entities_post', project_id=project.id) }}" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+            <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                Estás a punto de fusionar dos entidades de forma segura. La entidad secundaria será absorbida, conservando su historial, alias y referencias bajo el ID principal.
+            </p>
+            
+            <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block;">Entidad Principal (Conserva ID)</span>
+                    <strong id="masterLabel" style="color: #10b981;"></strong> 
+                    <span id="masterIdLabel" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);"></span>
+                    <input type="hidden" name="master_id" id="masterIdInput">
+                </div>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 8px;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block;">Entidad Secundaria (Se fusiona / Soft Delete)</span>
+                    <strong id="secondaryLabel" style="color: var(--accent-red);"></strong> 
+                    <span id="secondaryIdLabel" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);"></span>
+                    <input type="hidden" name="secondary_id" id="secondaryIdInput">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Motivo de la Fusión</label>
+                <input type="text" name="reason" value="Entidades duplicadas" class="form-control" required>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 10px;">
+                <button type="button" onclick="closeMergeModal()" class="btn btn-secondary">Cancelar</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Confirmar Fusión</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterEntities() {
+        const query = document.getElementById("searchInput").value.toLowerCase().strip ? document.getElementById("searchInput").value.toLowerCase().trim() : document.getElementById("searchInput").value.toLowerCase();
+        const typeFilter = document.getElementById("typeFilter").value.toLowerCase();
+        const statusFilter = document.getElementById("statusFilter").value;
+        const rows = document.querySelectorAll(".entity-row");
+
+        rows.forEach(row => {
+            const id = row.getAttribute("data-id").toLowerCase();
+            const tipo = row.getAttribute("data-tipo").toLowerCase();
+            const nombre = row.getAttribute("data-nombre").toLowerCase();
+            const alias = row.getAttribute("data-alias").toLowerCase();
+            const estado = row.getAttribute("data-estado");
+
+            const matchesQuery = id.includes(query) || nombre.includes(query) || alias.includes(query);
+            const matchesType = !typeFilter || tipo === typeFilter;
+            
+            let matchesStatus = true;
+            if (statusFilter === "activo") {
+                matchesStatus = estado === "activo";
+            } else if (statusFilter === "merged") {
+                matchesStatus = estado === "merged";
+            }
+
+            if (matchesQuery && matchesType && matchesStatus) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+
+    // Modal Operations
+    function openMergeModal(masterId, masterName, secondaryId, secondaryName) {
+        document.getElementById("masterLabel").innerText = masterName;
+        document.getElementById("masterIdLabel").innerText = `(${masterId})`;
+        document.getElementById("masterIdInput").value = masterId;
+
+        document.getElementById("secondaryLabel").innerText = secondaryName;
+        document.getElementById("secondaryIdLabel").innerText = `(${secondaryId})`;
+        document.getElementById("secondaryIdInput").value = secondaryId;
+
+        document.getElementById("mergeModal").style.display = "flex";
+    }
+
+    function closeMergeModal() {
+        document.getElementById("mergeModal").style.display = "none";
+    }
+
+    // Trigger initial filter on load
+    window.addEventListener('DOMContentLoaded', (event) => {
+        filterEntities();
+    });
+</script>
+{% endblock %}

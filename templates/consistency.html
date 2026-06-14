@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}Verificador de Consistencia - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 30px;">
+    
+    <!-- Header -->
+    <div class="glass-panel" style="padding: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <h1 class="text-gradient" style="font-size: 2rem; margin-bottom: 6px;">
+                <i class="fa-solid fa-shield-halved" style="color: var(--accent-gold); margin-right: 10px;"></i>Verificador de Consistencia
+            </h1>
+            <p style="font-size: 0.95rem;">
+                Herramienta de diagnóstico de integridad referencial. Identifica inconsistencias, enlaces rotos o archivos huérfanos.
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('view_consistency_report', project_id=project.id) }}" class="btn btn-primary">
+                <i class="fa-solid fa-arrows-rotate"></i> Volver a Escanear
+            </a>
+            <a href="{{ url_for('view_project', project_id=project.id) }}" class="btn btn-secondary">
+                Volver al Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Warnings from scanner -->
+    {% if report.warnings %}
+        <div class="glass-panel" style="padding: 20px; border-left: 4px solid var(--accent-gold); background: rgba(217, 119, 6, 0.05);">
+            <h3 style="font-size: 1.1rem; color: var(--accent-gold); margin-bottom: 10px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> Avisos del Escaneo
+            </h3>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem;">
+                {% for warn in report.warnings %}
+                    <li><i class="fa-solid fa-circle-info" style="color: var(--accent-gold); margin-right: 6px;"></i>{{ warn }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- Diagnostic sections -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        
+        <!-- Broken Links / Missing markdown files -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-red); display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-unlink" style="margin-right: 8px;"></i>Enlaces Rotos (Obsidian)</span>
+                    <span class="tag-badge" style="background: rgba(220, 38, 38, 0.15); color: var(--accent-red);">{{ report.missing_markdown_files|length }}</span>
+                </h3>
+                
+                {% if report.missing_markdown_files %}
+                    <div style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 6px;">
+                        {% for err in report.missing_markdown_files %}
+                            <div class="glass-card" style="padding: 12px; font-size: 0.85rem; border-left: 3px solid var(--accent-red);">
+                                En la ficha: <strong style="color: var(--text-primary);">{{ err.origen }}</strong> <br>
+                                Enlace inválido: <code style="color: var(--accent-red); background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">[[{{ err.enlace_roto }}]]</code>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #10b981; margin-bottom: 10px; display: block;"></i>
+                        <p style="color: var(--text-primary); font-size: 0.95rem;">¡Perfecto! No se detectaron enlaces rotos a notas de la Biblioteca.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Broken Relationships -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-red); display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-ban" style="margin-right: 8px;"></i>Relaciones Rotas</span>
+                    <span class="tag-badge" style="background: rgba(220, 38, 38, 0.15); color: var(--accent-red);">{{ report.broken_relationships|length }}</span>
+                </h3>
+                
+                {% if report.broken_relationships %}
+                    <div style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 6px;">
+                        {% for rel in report.broken_relationships %}
+                            <div class="glass-card" style="padding: 12px; font-size: 0.85rem; border-left: 3px solid var(--accent-red);">
+                                Relación: <strong>{{ rel.entidad_a }} &harr; {{ rel.entidad_b }}</strong> ({{ rel.tipo }})<br>
+                                <span style="color: var(--accent-red); font-size: 0.8rem; font-weight: 600; display: block; margin-top: 4px;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Error: {{ rel.error }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #10b981; margin-bottom: 10px; display: block;"></i>
+                        <p style="color: var(--text-primary); font-size: 0.95rem;">¡Estupendo! Todas las relaciones apuntan a entidades reales en la Biblioteca.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Orphaned Assets -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-gold); display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-ghost" style="margin-right: 8px;"></i>Recortes Huérfanos</span>
+                    <span class="tag-badge" style="background: rgba(217, 119, 6, 0.15); color: var(--accent-gold);">{{ report.orphaned_assets|length }}</span>
+                </h3>
+                
+                {% if report.orphaned_assets %}
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px;">
+                        Archivos de imagen detectados físicamente en la carpeta <code>Assets/</code> que no figuran registrados en <code>index_assets.json</code>.
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 6px;">
+                        {% for file in report.orphaned_assets %}
+                            <div class="glass-card" style="padding: 10px; font-family: monospace; font-size: 0.8rem; word-break: break-all;">
+                                {{ file }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #10b981; margin-bottom: 10px; display: block;"></i>
+                        <p style="color: var(--text-primary); font-size: 0.95rem;">¡Perfecto! Todos los archivos de recorte corresponden a un registro oficial en el índice.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Empty Sources -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-gold); display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-folder-minus" style="margin-right: 8px;"></i>Fichas sin Fuentes Enlazadas</span>
+                    <span class="tag-badge" style="background: rgba(217, 119, 6, 0.15); color: var(--accent-gold);">{{ report.empty_sources|length }}</span>
+                </h3>
+                
+                {% if report.empty_sources %}
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px;">
+                        Notas Markdown en la <code>Biblioteca/</code> que están en estado "Pendiente" y no contienen enlazada ninguna página ni recorte de origen.
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 6px;">
+                        {% for ent in report.empty_sources %}
+                            <div class="glass-card" style="padding: 10px; font-size: 0.85rem; font-weight: 500;">
+                                <i class="fa-regular fa-file-lines" style="margin-right: 6px;"></i>{{ ent }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #10b981; margin-bottom: 10px; display: block;"></i>
+                        <p style="color: var(--text-primary); font-size: 0.95rem;">¡Felicidades! Todas las fichas de tu biblioteca tienen trazabilidad con páginas o recortes.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Duplicated IDs -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-red); display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-clone" style="margin-right: 8px;"></i>IDs Duplicados</span>
+                    <span class="tag-badge" style="background: rgba(220, 38, 38, 0.15); color: var(--accent-red);">{{ report.duplicated_ids|length }}</span>
+                </h3>
+                
+                {% if report.duplicated_ids %}
+                    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 6px;">
+                        {% for err in report.duplicated_ids %}
+                            <div class="glass-card" style="padding: 10px; font-size: 0.85rem; border-left: 3px solid var(--accent-red);">
+                                {{ err }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #10b981; margin-bottom: 10px; display: block;"></i>
+                        <p style="color: var(--text-primary); font-size: 0.95rem;">¡Perfecto! Todos los identificadores son únicos.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Duplicated Aliases -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-gold); display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-masks-theater" style="margin-right: 8px;"></i>Alias Duplicados</span>
+                    <span class="tag-badge" style="background: rgba(217, 119, 6, 0.15); color: var(--accent-gold);">{{ report.duplicated_aliases|length }}</span>
+                </h3>
+                
+                {% if report.duplicated_aliases %}
+                    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 6px;">
+                        {% for err in report.duplicated_aliases %}
+                            <div class="glass-card" style="padding: 10px; font-size: 0.85rem; border-left: 3px solid var(--accent-gold);">
+                                {{ err }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #10b981; margin-bottom: 10px; display: block;"></i>
+                        <p style="color: var(--text-primary); font-size: 0.95rem;">¡Excelente! Ningún alias está asignado a más de una entidad.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Invalid First Appearances -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-red); display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-circle-xmark" style="margin-right: 8px;"></i>Primeras Apariciones Inválidas</span>
+                    <span class="tag-badge" style="background: rgba(220, 38, 38, 0.15); color: var(--accent-red);">{{ report.invalid_first_appearances|length }}</span>
+                </h3>
+                
+                {% if report.invalid_first_appearances %}
+                    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 6px;">
+                        {% for err in report.invalid_first_appearances %}
+                            <div class="glass-card" style="padding: 10px; font-size: 0.85rem; border-left: 3px solid var(--accent-red);">
+                                {{ err }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #10b981; margin-bottom: 10px; display: block;"></i>
+                        <p style="color: var(--text-primary); font-size: 0.95rem;">¡Correcto! Todas las primeras apariciones apuntan a páginas reales.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Assets Missing Entity ID -->
+        <div class="glass-panel" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--accent-gold); display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-image-portrait" style="margin-right: 8px;"></i>Recortes sin Vinculación de ID</span>
+                    <span class="tag-badge" style="background: rgba(217, 119, 6, 0.15); color: var(--accent-gold);">{{ report.assets_missing_entity_id|length }}</span>
+                </h3>
+                
+                {% if report.assets_missing_entity_id %}
+                    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 6px;">
+                        {% for err in report.assets_missing_entity_id %}
+                            <div class="glass-card" style="padding: 10px; font-size: 0.85rem; border-left: 3px solid var(--accent-gold);">
+                                {{ err }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state" style="padding: 20px;">
+                        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #10b981; margin-bottom: 10px; display: block;"></i>
+                        <p style="color: var(--text-primary); font-size: 0.95rem;">¡Perfecto! Todos los recortes visuales corresponden a una entidad registrada.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

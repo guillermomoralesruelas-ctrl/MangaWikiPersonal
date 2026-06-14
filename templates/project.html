@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Dashboard{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 30px;">
+    
+    <!-- Hero / Info Panel -->
+    <div class="glass-panel" style="padding: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <h1 class="text-gradient" style="font-size: 2.2rem; margin-bottom: 6px;">{{ project.name }}</h1>
+            <p style="font-size: 0.95rem;">
+                <i class="fa-regular fa-file-pdf" style="margin-right: 6px;"></i> PDF: <strong>{{ project.pdf_name }}</strong> &nbsp;|&nbsp; 
+                <i class="fa-regular fa-calendar" style="margin-right: 6px;"></i> Creado el: <strong>{{ project.created_at }}</strong>
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 12px;">
+            <a href="{{ url_for('list_pages', project_id=project.id) }}" class="btn btn-primary">
+                <i class="fa-solid fa-images"></i> Explorar Páginas
+            </a>
+            <a href="{{ url_for('view_consistency_report', project_id=project.id) }}" class="btn btn-secondary" title="Verificar consistencia del vault">
+                <i class="fa-solid fa-shield-halved"></i> Consistencia
+            </a>
+            <a href="{{ url_for('open_obsidian_info', project_id=project.id) }}" target="_blank" class="btn btn-secondary" title="Abrir carpeta en el explorador">
+                <i class="fa-solid fa-folder-open"></i> Abrir Carpeta
+            </a>
+        </div>
+    </div>
+    
+    <!-- Stats widgets -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--accent-blue); padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--accent-blue); margin-bottom: 4px;">{{ project.total_pages }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Total Páginas</div>
+        </div>
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid #00f2fe; padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #00f2fe; margin-bottom: 4px;">{{ stats.total_entities }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Total Entidades</div>
+        </div>
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--accent-gold); padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--accent-gold); margin-bottom: 4px;">{{ stats.characters }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Personajes</div>
+        </div>
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid #10b981; padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-bottom: 4px;">{{ stats.events }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Eventos</div>
+        </div>
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid #8b5cf6; padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #8b5cf6; margin-bottom: 4px;">{{ stats.places }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Lugares</div>
+        </div>
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid #3b82f6; padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #3b82f6; margin-bottom: 4px;">{{ stats.organizations }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Organizaciones</div>
+        </div>
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid #f59e0b; padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #f59e0b; margin-bottom: 4px;">{{ stats.relations }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Relaciones</div>
+        </div>
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid #ef4444; padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #ef4444; margin-bottom: 4px;">{{ stats.timeline }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Timeline</div>
+        </div>
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid #ec4899; padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #ec4899; margin-bottom: 4px;">{{ stats.assets }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Recortes</div>
+        </div>
+        <div class="glass-card" style="text-align: center; border-bottom: 3px solid #10b981; padding: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-bottom: 4px;">{{ stats.aliases }}</div>
+            <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Alias Reg.</div>
+        </div>
+    </div>
+    
+    <!-- Resolution & Quality Metrics -->
+    <div class="glass-panel" style="padding: 20px;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-heart-pulse" style="color: var(--accent-gold);"></i> Salud y Resolución de Entidades
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid #10b981; padding: 10px; background: rgba(16, 185, 129, 0.03);">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #10b981; margin-bottom: 4px;">{{ stats.healthy }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Saludables (&gt;80)</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--accent-gold); padding: 10px; background: rgba(217, 119, 6, 0.03);">
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--accent-gold); margin-bottom: 4px;">{{ stats.incomplete }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Incompletas (40-80)</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--accent-red); padding: 10px; background: rgba(220, 38, 38, 0.03);">
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--accent-red); margin-bottom: 4px;">{{ stats.orphans }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Huérfanas (&lt;40)</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid #f59e0b; padding: 10px;">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #f59e0b; margin-bottom: 4px;">{{ stats.duplicates }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Posibles Duplicados</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--accent-blue); padding: 10px;">
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--accent-blue); margin-bottom: 4px;">{{ stats.merges }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Fusiones Realizadas</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--text-muted); padding: 10px;">
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-secondary); margin-bottom: 4px;">{{ stats.no_alias }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Sin Alias</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--text-muted); padding: 10px;">
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-secondary); margin-bottom: 4px;">{{ stats.no_assets }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Sin Recortes</div>
+            </div>
+            <div class="glass-card" style="text-align: center; border-bottom: 3px solid var(--text-muted); padding: 10px;">
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-secondary); margin-bottom: 4px;">{{ stats.no_relations }}</div>
+                <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Sin Relaciones</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lower grid: Recent pages & Entities overview -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+        
+        <!-- Quick navigation to first pages -->
+        <div class="glass-panel" style="padding: 24px;">
+            <div style="display: flex; justify-content: flex-start; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <h3 style="font-size: 1.25rem; margin-bottom: 0;">Primeras Páginas</h3>
+                <a href="{{ url_for('list_pages', project_id=project.id) }}" style="font-size: 0.85rem; color: var(--accent-gold); text-decoration: none; font-weight: 600;">Ver todas &rarr;</a>
+            </div>
+            
+            <div class="pages-grid" style="margin-top: 0;">
+                {% for page_num, info in first_pages %}
+                    <a href="{{ url_for('edit_page', project_id=project.id, page_num=page_num) }}" class="page-card">
+                        <div class="page-card-thumb">
+                            <!-- Serve page image from app static/project media or custom route -->
+                            <img src="{{ url_for('get_page_image', project_id=project.id, page_num=page_num) }}" alt="Página {{ page_num }}">
+                        </div>
+                        <div class="page-card-title">Página {{ page_num }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+                            {% if info.texto or info.narracion %}
+                                <span style="color: #10b981;"><i class="fa-solid fa-circle-check"></i> Editada</span>
+                            {% else %}
+                                <span style="color: var(--text-muted);"><i class="fa-regular fa-circle"></i> Pendiente</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Entity overview lists -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="glass-panel" style="padding: 20px;">
+                <h3 style="font-size: 1.15rem; margin-bottom: 15px;">
+                    <i class="fa-solid fa-user-astronaut" style="color: var(--accent-gold); margin-right: 8px;"></i>Personajes Detectados
+                </h3>
+                {% if characters %}
+                    <div class="entity-list">
+                        {% for char in characters %}
+                            <a href="{{ url_for('view_character', project_id=project.id, name=char) }}" class="entity-pill">
+                                {{ char }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Aún no se han agregado personajes.</p>
+                {% endif %}
+            </div>
+
+            <div class="glass-panel" style="padding: 20px;">
+                <h3 style="font-size: 1.15rem; margin-bottom: 15px;">
+                    <i class="fa-solid fa-earth-americas" style="color: #8b5cf6; margin-right: 8px;"></i>Lugares Registrados
+                </h3>
+                {% if places %}
+                    <div class="entity-list">
+                        {% for pl in places %}
+                            <span class="entity-pill" style="color: #8b5cf6; border-color: rgba(139, 92, 246, 0.25); background: rgba(139, 92, 246, 0.1);">
+                                {{ pl }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Aún no se han registrado lugares.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+    </div>
+
+</div>
+{% endblock %}

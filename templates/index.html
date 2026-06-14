@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - MangaWiki Personal{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: start;">
+    
+    <!-- Create Project Form -->
+    <div class="glass-panel" style="padding: 30px;">
+        <h2 class="text-gradient" style="font-size: 1.8rem; margin-bottom: 20px;">
+            <i class="fa-solid fa-folder-plus" style="color: var(--accent-gold); margin-right: 10px;"></i>Crear Nuevo MangaWiki
+        </h2>
+        <p style="margin-bottom: 24px; font-size: 0.95rem;">
+            Introduce el nombre del proyecto y selecciona el archivo PDF de tu manga para comenzar la fragmentación de páginas y la creación de la bóveda de Obsidian.
+        </p>
+        
+        <form action="{{ url_for('create_project') }}" method="POST" enctype="multipart/form-data" id="createProjectForm">
+            <div class="form-group">
+                <label class="form-label" for="project_name">Nombre del Proyecto / Manga</label>
+                <input type="text" id="project_name" name="project_name" class="form-control" placeholder="Ej. One Piece - Tomo 01" required>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 30px;">
+                <label class="form-label" for="pdf_file">Archivo PDF</label>
+                <!-- Allow upload, or specify absolute path. Let's support file input for convenience -->
+                <input type="file" id="pdf_file" name="pdf_file" class="form-control" accept=".pdf" required>
+                <small style="color: var(--text-muted); display: block; margin-top: 6px; font-size: 0.8rem;">
+                    El archivo se copiará localmente y se convertirá a imágenes PNG de alta resolución.
+                </small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Crear MangaWiki
+            </button>
+        </form>
+    </div>
+    
+    <!-- Open Existing Project -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <div class="glass-panel" style="padding: 24px;">
+            <h3 style="font-size: 1.3rem; margin-bottom: 16px;">
+                <i class="fa-solid fa-folder-open" style="color: var(--accent-gold); margin-right: 8px;"></i>Proyectos Locales
+            </h3>
+            
+            {% if projects %}
+                <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+                    {% for proj in projects %}
+                        <a href="{{ url_for('view_project', project_id=proj.id) }}" class="glass-card" style="display: block; text-decoration: none; padding: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <strong style="color: var(--text-primary); font-size: 1.05rem;">{{ proj.name }}</strong>
+                                <span class="tag-badge" style="background: rgba(37,99,235,0.15); color: var(--accent-blue); border-color: rgba(37,99,235,0.3);">
+                                    {{ proj.total_pages }} pág.
+                                </span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); word-break: break-all;">
+                                <i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i>{{ proj.path }}
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fa-regular fa-folder-open" style="font-size: 2.5rem; margin-bottom: 12px; display: block;"></i>
+                    <p>No se encontraron proyectos activos.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="glass-card" style="border-left: 3px solid var(--accent-gold); padding: 16px;">
+            <h4 style="font-size: 0.95rem; color: var(--accent-gold); margin-bottom: 6px;">Bóveda de Obsidian</h4>
+            <p style="font-size: 0.85rem; line-height: 1.5;">
+                Todos los proyectos se guardan en la carpeta: <br>
+                <code>c:/Users/oaxac/Documents/programas/Manga/onepiece/MangaWikiPersonal/Proyectos/</code><br>
+                Puedes abrir directamente esa carpeta desde Obsidian para ver tus notas interactuando y vinculadas automáticamente.
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('createProjectForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando PDF... (esto puede tardar unos segundos)';
+        
+        // Change style slightly to indicate processing status
+        btn.style.opacity = '0.7';
+        btn.style.cursor = 'not-allowed';
+    });
+</script>
+{% endblock %}

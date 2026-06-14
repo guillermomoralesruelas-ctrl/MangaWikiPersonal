@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Páginas - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="glass-panel" style="padding: 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+    <div>
+        <h1 class="text-gradient" style="font-size: 1.8rem; margin-bottom: 6px;">Páginas de {{ project.name }}</h1>
+        <p style="font-size: 0.9rem;">
+            Total: <strong>{{ total_pages }} páginas</strong>. Haz clic en cualquier página para comenzar a editar o transcribir su información manualmente.
+        </p>
+    </div>
+    <div>
+        <a href="{{ url_for('view_project', project_id=project.id) }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="glass-panel" style="padding: 24px;">
+    <div class="pages-grid">
+        {% for page_num, info in pages.items() %}
+            <a href="{{ url_for('edit_page', project_id=project.id, page_num=page_num) }}" class="page-card">
+                <div class="page-card-thumb">
+                    <img src="{{ url_for('get_page_image', project_id=project.id, page_num=page_num) }}" alt="Página {{ page_num }}">
+                </div>
+                <div class="page-card-title">Página {{ page_num }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+                    {% if info.texto or info.narracion or info.personajes or info.eventos or info.lugares or info.objetos %}
+                        <span style="color: #10b981; font-weight: 500;">
+                            <i class="fa-solid fa-circle-check"></i> Modificado
+                        </span>
+                    {% else %}
+                        <span style="color: var(--text-muted);">
+                            <i class="fa-regular fa-circle"></i> Pendiente
+                        </span>
+                    {% endif %}
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
