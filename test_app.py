@@ -362,6 +362,264 @@ def run_test():
         
         print("[OK] Toda la validación del Entity Assisted Editor fue exitosa.")
 
+        # Test ChatGPT Analysis Importer
+        print("\n--- Probando ChatGPT Analysis Importer ---")
+        
+        # 1. Complete structured Markdown parsing test
+        markdown_complete = """
+## Página 001
+### Tipo de página
+Historia principal
+
+### Narración
+En este día comenzó la gran era de la piratería.
+
+### Descripción visual
+El Rey de los Piratas sonríe antes de su ejecución.
+
+### Personajes presentes
+- Monkey D. Luffy
+- Gold Roger
+- Personaje Nuevo Test
+
+### Eventos importantes
+- Gran Ejecución de Roger
+
+### Lugares
+- Loguetown
+
+### Objetos importantes
+- Espada de Ejecución
+
+### Relaciones detectadas
+- Gold Roger -> Monkey D. Luffy: Admiración e inspiración de la era pirata.
+
+### Curiosidades
+- Roger nació en Loguetown.
+
+### Etiquetas
+#historia #inicio #roger
+
+```json
+{
+  "elementos": [
+    {
+      "id": "p001_roger_valid",
+      "tipo": "personaje",
+      "nombre": "Gold Roger",
+      "descripcion": "El legendario Rey de los Piratas",
+      "bbox_normalizado": {
+        "x": 0.1,
+        "y": 0.2,
+        "ancho": 0.3,
+        "alto": 0.4
+      }
+    }
+  ]
+}
+```
+"""
+        res = client.post(f'/project/{test_project_id}/page/001/import-analysis/parse', json={
+            "text_content": markdown_complete
+        })
+        assert res.status_code == 200, "Error al parsear Markdown completo"
+        parsed_res = json.loads(res.data)
+        print(" -> Markdown completo parseado con éxito.")
+        assert parsed_res["pagina"] == 1
+        assert parsed_res["tipo_pagina"] == "Historia principal"
+        assert parsed_res["narracion"] == "En este día comenzó la gran era de la piratería."
+        assert len(parsed_res["personajes"]) == 3
+        assert len(parsed_res["detecciones_validas"]) == 1
+        assert len(parsed_res["detecciones_invalidas"]) == 0
+        
+        # 2. JSON complete test
+        json_complete = {
+            "pagina": 1,
+            "tipo_pagina": "Historia principal",
+            "narracion": "El inicio de una nueva leyenda.",
+            "descripcion_visual": "Luffy de pie en el barco.",
+            "personajes": [{"nombre": "Monkey D. Luffy"}, {"nombre": "Roronoa Zoro"}],
+            "eventos": ["El juramento"],
+            "lugares": ["Mar de la supervivencia"],
+            "objetos": ["Katanas de Zoro"],
+            "relaciones": [{"source": "Roronoa Zoro", "target": "Monkey D. Luffy", "tipo": "interaccion", "evidencia": "Promesa de lealtad"}],
+            "curiosidades": ["Zoro duerme mucho"],
+            "etiquetas": ["#juramento", "#luffy"],
+            "detecciones_visuales": {
+                "elementos": [
+                    {
+                        "id": "p001_zoro_valid_abs",
+                        "tipo": "personaje",
+                        "nombre": "Roronoa Zoro",
+                        "descripcion": "Cazador de piratas",
+                        "bbox": {
+                            "x": 50,
+                            "y": 50,
+                            "ancho": 100,
+                            "alto": 150
+                        }
+                    }
+                ]
+            }
+        }
+        res = client.post(f'/project/{test_project_id}/page/001/import-analysis/parse', json={
+            "text_content": json.dumps(json_complete)
+        })
+        assert res.status_code == 200, "Error al parsear JSON completo"
+        parsed_json_res = json.loads(res.data)
+        print(" -> JSON completo parseado con éxito.")
+        assert parsed_json_res["pagina"] == 1
+        assert len(parsed_json_res["detecciones_validas"]) == 1
+        assert len(parsed_json_res["detecciones_invalidas"]) == 0
+        
+        # 3. Markdown / JSON without visual detections (page-only mode - Ajuste #4 & #5)
+        markdown_no_assets = """
+## Página 001
+### Narración
+Escena tranquila en el mar.
+### Descripción visual
+Solo olas y viento.
+### Personajes presentes
+- Luffy
+"""
+        res = client.post(f'/project/{test_project_id}/page/001/import-analysis/parse', json={
+            "text_content": markdown_no_assets
+        })
+        assert res.status_code == 200
+        parsed_no_assets = json.loads(res.data)
+        print(" -> Modo 'solo página' (sin assets) parseado con éxito.")
+        assert len(parsed_no_assets["detecciones_validas"]) == 0
+        assert len(parsed_no_assets["detecciones_invalidas"]) == 0
+        
+        # 4. Incorrect page warning test (Ajuste #9)
+        markdown_wrong_page = """
+## Página 005
+### Narración
+Test
+"""
+        res = client.post(f'/project/{test_project_id}/page/001/import-analysis/parse', json={
+            "text_content": markdown_wrong_page
+        })
+        assert res.status_code == 200
+        parsed_wrong = json.loads(res.data)
+        print(" -> Validación de página incorrecta exitosa.")
+        has_warning = any("no coincide con la página actual" in w for w in parsed_wrong["warnings"])
+        assert has_warning, "Debió generar advertencia de página incorrecta"
+        
+        # 5. Coordinate tests (valid/invalid bbox & bbox_normalizado - Ajuste #12)
+        # bbox_normalizado inválido
+        json_invalid_norm = {
+            "pagina": 1,
+            "detecciones_visuales": {
+                "elementos": [
+                    {
+                        "id": "det_invalid_norm",
+                        "tipo": "objeto",
+                        "nombre": "Test",
+                        "bbox_normalizado": {"x": 1.5, "y": 0.5, "ancho": 0.2, "alto": 0.2}
+                    }
+                ]
+            }
+        }
+        res = client.post(f'/project/{test_project_id}/page/001/import-analysis/parse', json={
+            "text_content": json.dumps(json_invalid_norm)
+        })
+        parsed_invalid_norm = json.loads(res.data)
+        print(" -> Validación bbox_normalizado fuera de rango exitosa.")
+        assert len(parsed_invalid_norm["detecciones_invalidas"]) == 1
+        assert "rango 0.0-1.0" in parsed_invalid_norm["detecciones_invalidas"][0]["error_reason"]
+        
+        # bbox absoluto inválido (valores negativos)
+        json_invalid_abs = {
+            "pagina": 1,
+            "detecciones_visuales": {
+                "elementos": [
+                    {
+                        "id": "det_invalid_abs",
+                        "tipo": "objeto",
+                        "nombre": "Test",
+                        "bbox": {"x": -10, "y": 50, "ancho": 100, "alto": 100}
+                    }
+                ]
+            }
+        }
+        res = client.post(f'/project/{test_project_id}/page/001/import-analysis/parse', json={
+            "text_content": json.dumps(json_invalid_abs)
+        })
+        parsed_invalid_abs = json.loads(res.data)
+        print(" -> Validación bbox absoluto con negativos exitosa.")
+        assert len(parsed_invalid_abs["detecciones_invalidas"]) == 1
+        assert "negativas" in parsed_invalid_abs["detecciones_invalidas"][0]["error_reason"]
+
+        # 6. Duplicate asset ID validation (Ajuste #12)
+        # Gold Roger is already registered in mock test run (id "p001_obj_001")
+        json_dup_asset = {
+            "pagina": 1,
+            "detecciones_visuales": {
+                "elementos": [
+                    {
+                        "id": "p001_obj_001",
+                        "tipo": "personaje",
+                        "nombre": "Gold Roger",
+                        "bbox": {"x": 10, "y": 10, "ancho": 10, "alto": 10}
+                    }
+                ]
+            }
+        }
+        res = client.post(f'/project/{test_project_id}/page/001/import-analysis/parse', json={
+            "text_content": json.dumps(json_dup_asset)
+        })
+        parsed_dup_asset = json.loads(res.data)
+        print(" -> Validación ID de asset duplicado exitosa.")
+        assert len(parsed_dup_asset["detecciones_invalidas"]) == 1
+        assert "ya existe en el índice" in parsed_dup_asset["detecciones_invalidas"][0]["error_reason"]
+
+        # 7. Entity Resolution Center match checks (Ajuste #10 & #12)
+        # Existing entity by name ("Monkey D. Luffy")
+        # Existing entity by alias ("Mugiwara")
+        # New entity confirmation
+        json_entity_matching = {
+            "pagina": 1,
+            "personajes": ["Monkey D. Luffy", "Mugiwara", "Nueva Entidad Test"]
+        }
+        res = client.post(f'/project/{test_project_id}/page/001/import-analysis/parse', json={
+            "text_content": json.dumps(json_entity_matching)
+        })
+        parsed_ent_match = json.loads(res.data)
+        print(" -> Validación resolución de entidades (nombre/alias/nueva) exitosa.")
+        existentes_ids = [e["id"] for e in parsed_ent_match["entities_summary"]["existentes"]]
+        assert luffy_id in existentes_ids, "Debería mapear a Luffy"
+        # Mugiwara is alias of Luffy, so it should also resolve to luffy_id
+        assert existentes_ids.count(luffy_id) == 2, "Tanto Luffy como Mugiwara deberían mapearse a Luffy"
+        
+        # 8. Save/Import tests (raw and parsed import archives, suggest relation, suggest timeline)
+        # Let's save a parsed result
+        res = client.post(f'/project/{test_project_id}/page/001/import-analysis/save', json={
+            "text_content": markdown_complete,
+            "parsed_json": parsed_res["raw_parsed"],
+            "confirm_relations": False, # Desactivada por defecto (Ajuste #6)
+            "confirm_timeline": False    # Desactivada por defecto (Ajuste #7)
+        })
+        assert res.status_code == 200
+        save_res = json.loads(res.data)
+        assert save_res["status"] == "success"
+        print(" -> Guardado de importación exitoso.")
+        
+        # Check that imports_raw and imports_parsed directories exist and have files (Ajuste #2 & #3)
+        raw_files = os.listdir(os.path.join(test_project_path, "Datos_JSON", "imports_raw"))
+        parsed_files = os.listdir(os.path.join(test_project_path, "Datos_JSON", "imports_parsed"))
+        assert len(raw_files) > 0, "No se guardó el raw import"
+        assert len(parsed_files) > 0, "No se guardó el parsed import"
+        print(" -> Respaldo de raw import (.md) y parsed import (.json) verificado con éxito.")
+        
+        # Check pages.json was updated with structured format (Ajuste #8)
+        pages_wiki = json_mgr.load_pages()
+        assert isinstance(pages_wiki["001"]["personajes"][0], dict), "Los personajes no están guardados en formato estructurado"
+        assert "entity_id" in pages_wiki["001"]["personajes"][0], "Falta entity_id en formato estructurado"
+        print(" -> Formato estructurado con entity_id verificado en paginas.json.")
+
+        print("[OK] Toda la validación del ChatGPT Analysis Importer fue exitosa.")
+
         # Check results
         index_file = os.path.join(test_project_path, "00_Index", "Index.md")
         char_file = os.path.join(test_project_path, "Biblioteca", "Personajes", "Monkey_D._Luffy.md")

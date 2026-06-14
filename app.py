@@ -1292,6 +1292,245 @@ def api_preview_page_save_impact(project_id):
     
     return jsonify(impact)
 
+@app.route('/project/<project_id>/page/<page_num>/import-analysis')
+def import_analysis_view(project_id, page_num):
+    project_path = os.path.join(BASE_PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        flash("Proyecto no encontrado.", "error")
+        return redirect(url_for('index'))
+        
+    json_mgr = ProjectJSONManager(project_path)
+    meta = json_mgr.load_project_meta()
+    
+    return render_template('import_analysis.html',
+                           project=meta,
+                           page_num=page_num,
+                           active_page='pages')
+
+@app.route('/project/<project_id>/page/<page_num>/import-analysis/parse', methods=['POST'])
+def api_parse_import_analysis(project_id, page_num):
+    project_path = os.path.join(BASE_PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        return jsonify({"error": "Project not found"}), 404
+        
+    data = request.json or {}
+    text_content = data.get("text_content", "")
+    
+    from services.chatgpt_importer import ChatGPTImporter
+    importer = ChatGPTImporter(project_path)
+    parsed_result = importer.parse_analysis(text_content, page_num)
+    
+    return jsonify(parsed_result)
+
+@app.route('/project/<project_id>/page/<page_num>/import-analysis/save', methods=['POST'])
+def save_imported_analysis(project_id, page_num):
+    project_path = os.path.join(BASE_PROJECTS_DIR, project_id)
+    if not os.path.exists(project_path):
+        return jsonify({"error": "Project not found"}), 404
+        
+    data = request.json or {}
+    text_content = data.get("text_content", "")
+    parsed_json = data.get("parsed_json", {})
+    
+    confirm_relations = data.get("confirm_relations", False)
+    confirm_timeline = data.get("confirm_timeline", False)
+    
+    # 1. Save backup raw & parsed files (Ajuste #2 & #3)
+    import datetime
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    raw_dir = os.path.join(project_path, "Datos_JSON", "imports_raw")
+    os.makedirs(raw_dir, exist_ok=True)
+    raw_file = os.path.join(raw_dir, f"Pagina_{page_num}_{timestamp}.md")
+    with open(raw_file, 'w', encoding='utf-8') as f:
+        f.write(text_content)
+        
+    parsed_dir = os.path.join(project_path, "Datos_JSON", "imports_parsed")
+    os.makedirs(parsed_dir, exist_ok=True)
+    parsed_file = os.path.join(parsed_dir, f"Pagina_{page_num}_{timestamp}.json")
+    with open(parsed_file, 'w', encoding='utf-8') as f:
+        json.dump(parsed_json, f, ensure_ascii=False, indent=4)
+        
+    # 2. Resolve and Auto-Create confirmed entities
+    from services.entity_manager import EntityManager
+    em = EntityManager(project_path)
+    
+    def process_imported_list(raw_names, ent_type):
+        resolved_list = []
+        for name in raw_names:
+            if isinstance(name, dict):
+                name_val = name.get("nombre", "")
+            else:
+                name_val = name
+            name_clean = str(name_val).strip() if name_val is not None else ""
+            if not name_clean:
+                continue
+            resolved_id = em.resolve_to_id(name_clean)
+            if not resolved_id:
+                new_ent, _ = em.get_or_create_entity(name_clean, ent_type)
+                resolved_id = new_ent["id"]
+                name_clean = new_ent["nombre"]
+            else:
+                ent = em.get_entity_by_id(resolved_id)
+                name_clean = ent["nombre"]
+            resolved_list.append({"entity_id": resolved_id, "nombre": name_clean})
+        return resolved_list
+
+    json_mgr = ProjectJSONManager(project_path)
+    pages = json_mgr.load_pages()
+    
+    pages[page_num]["texto"] = parsed_json.get("texto", pages[page_num].get("texto", ""))
+    pages[page_num]["narracion"] = parsed_json.get("narracion", "")
+    pages[page_num]["descripcion_visual"] = parsed_json.get("descripcion_visual", "")
+    
+    pages[page_num]["personajes"] = process_imported_list(parsed_json.get("personajes", []), "personaje")
+    pages[page_num]["eventos"] = process_imported_list(parsed_json.get("eventos", []), "evento")
+    pages[page_num]["lugares"] = process_imported_list(parsed_json.get("lugares", []), "lugar")
+    pages[page_num]["objetos"] = process_imported_list(parsed_json.get("objetos", []), "objeto")
+    
+    curiosidades_list = parsed_json.get("curiosidades", [])
+    pages[page_num]["curiosidades"] = "\n".join(curiosidades_list) if isinstance(curiosidades_list, list) else str(curiosidades_list)
+    
+    rel_list = []
+    for r in parsed_json.get("relaciones", []):
+        if isinstance(r, dict):
+            src = r.get("source", "Desconocido")
+            tgt = r.get("target", "Desconocido")
+            evid = r.get("evidencia", "Pendiente")
+            rel_list.append(f"{src} -> {tgt}: {evid}")
+        else:
+            rel_list.append(str(r))
+    pages[page_num]["relaciones"] = "\n".join(rel_list)
+    pages[page_num]["notas"] = parsed_json.get("notas", "")
+    
+    pages[page_num]["etiquetas"] = parsed_json.get("etiquetas", ["#pagina", "#manga"])
+    
+    json_mgr.save_pages(pages)
+    generate_page_markdown(project_path, pages[page_num])
+    
+    # 3. Handle confirmed relations (Ajuste #6)
+    if confirm_relations:
+        relations = json_mgr.load_relations()
+        for rel in parsed_json.get("relaciones", []):
+            if isinstance(rel, dict):
+                src = rel.get("source")
+                tgt = rel.get("target")
+                evid = rel.get("evidencia", "Pendiente")
+            else:
+                match = re.match(r'(.*?)\s*->\s*(.*?):\s*(.*)', str(rel))
+                if match:
+                    src = match.group(1).strip()
+                    tgt = match.group(2).strip()
+                    evid = match.group(3).strip()
+                else:
+                    continue
+            
+            sid = em.resolve_to_id(src)
+            tid = em.resolve_to_id(tgt)
+            
+            if sid and tid:
+                exists = any((r.get("source_id") == sid and r.get("target_id") == tid) or 
+                             (r.get("source_id") == tid and r.get("target_id") == sid) for r in relations)
+                if not exists:
+                    new_rel = {
+                        "source_id": sid,
+                        "target_id": tid,
+                        "entidad_a": src,
+                        "entidad_b": tgt,
+                        "tipo": "interaccion",
+                        "evidencia": evid,
+                        "notas": "Importado de ChatGPT"
+                    }
+                    relations.append(new_rel)
+                    generate_relation_markdown(project_path, new_rel)
+        json_mgr.save_relations(relations)
+        
+    # 4. Handle confirmed timeline (Ajuste #7)
+    if confirm_timeline:
+        timeline = json_mgr.load_timeline()
+        for ev in parsed_json.get("eventos", []):
+            if isinstance(ev, dict):
+                ev_name = ev.get("nombre", "")
+            else:
+                ev_name = ev
+            ev_name = str(ev_name).strip()
+            eid = em.resolve_to_id(ev_name)
+            if eid:
+                exists = any(ev_name == t.get("nombre") or eid in t.get("participantes", []) for t in timeline)
+                if not exists:
+                    next_num = max([t.get("num", 0) for t in timeline]) + 1 if timeline else 1
+                    new_timeline = {
+                        "num": next_num,
+                        "nombre": ev_name,
+                        "primera_aparicion": f"Pagina_{page_num}",
+                        "participantes": [eid],
+                        "descripcion": "Importado del análisis estructurado de ChatGPT"
+                    }
+                    timeline.append(new_timeline)
+                    generate_timeline_markdown(project_path, new_timeline)
+        json_mgr.save_timeline(timeline)
+
+    # 5. Process visual detections (Ajuste #4 & #5)
+    valid_dets = parsed_json.get("detecciones_validas", [])
+    cropped_assets_count = 0
+    if valid_dets:
+        from services.asset_extractor import process_detections
+        detection_wrapper = {
+            "pagina": int(page_num),
+            "elementos": valid_dets
+        }
+        crop_res = process_detections(project_path, detection_wrapper)
+        cropped_assets_count = crop_res.get("processed", 0)
+        
+        imports_det_file = os.path.join(project_path, "Datos_JSON", "detecciones_importadas.json")
+        saved_dets = load_json(imports_det_file, default_value=[])
+        saved_dets.extend(valid_dets)
+        save_json(imports_det_file, saved_dets)
+
+    # Global lists recalculation
+    all_chars = set()
+    all_events = set()
+    all_places = set()
+    all_objects = set()
+    for p_num, p_info in pages.items():
+        for item in p_info.get("personajes", []):
+            char = item.get("nombre") if isinstance(item, dict) else item
+            if char: all_chars.add(char)
+        for item in p_info.get("eventos", []):
+            ev = item.get("nombre") if isinstance(item, dict) else item
+            if ev: all_events.add(ev)
+        for item in p_info.get("lugares", []):
+            pl = item.get("nombre") if isinstance(item, dict) else item
+            if pl: all_places.add(pl)
+        for item in p_info.get("objetos", []):
+            obj = item.get("nombre") if isinstance(item, dict) else item
+            if obj: all_objects.add(obj)
+            
+    json_mgr.save_characters(list(sorted(all_chars)))
+    json_mgr.save_events(list(sorted(all_events)))
+    json_mgr.save_places(list(sorted(all_places)))
+    json_mgr.save_objects(list(sorted(all_objects)))
+    
+    em.run_auto_migration()
+    
+    meta = json_mgr.load_project_meta()
+    generate_index_markdown(
+        project_path,
+        meta.get("name", project_id),
+        meta.get("total_pages", 0),
+        characters=list(all_chars),
+        events=list(all_events),
+        places=list(all_places),
+        objects=list(all_objects),
+        orgs=json_mgr.load_organizations()
+    )
+    
+    return jsonify({
+        "status": "success",
+        "redirect_url": url_for('edit_page', project_id=project_id, page_num=page_num),
+        "message": f"Importación exitosa. Se guardaron {len(parsed_json.get('personajes', []))} personajes y se recortaron {cropped_assets_count} assets."
+    })
+
 if __name__ == '__main__':
     # Default local dev port
     print(f"Iniciando MangaWiki Personal en http://localhost:5000")
